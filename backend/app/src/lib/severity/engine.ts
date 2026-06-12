@@ -1,12 +1,14 @@
-import { SeverityOutputSchema } from './schema';
-import { model } from '@/lib/ai/gemini';
+import { SeverityOutputSchema, SeverityOutput } from './schema';
+import { executeWithRetryAndFallback, generateText } from '@/lib/ai/utils';
+
+export type SeverityResult = SeverityOutput;
 
 export async function determineSeverity(
   symptoms: string[],
   duration: string,
   allergies: string[],
   currentMeds: string[]
-) {
+): Promise<SeverityResult> {
   const prompt = `
 You are a Healthcare Navigation Agent for travelers. You DO NOT diagnose diseases.
 You ONLY determine the escalation pathway based on symptoms.
@@ -28,24 +30,17 @@ Current Medications: ${currentMeds.length ? currentMeds.join(', ') : 'None'}
 
 Analyze and output strictly in JSON matching this schema:
 { "severity": "ENUM_VALUE", "reasoning": "Brief explanation of escalation level", "suggestedAction": "What the user should do next" }
-  `;
+  `.trim();
 
-  try {
-    const rawResult: any = await model.generateContent({ prompt });
-    const responseText =
-      rawResult?.response?.text?.() ||
-      rawResult?.output?.[0]?.content?.[0]?.text ||
-      rawResult?.output?.[0]?.data?.text ||
-      '';
+  const fallback: SeverityResult = {
+    severity: 'CLINIC',
+    reasoning: 'Unable to assess severity automatically.',
+    suggestedAction: 'Please consult a healthcare provider to be safe.'
+  };
 
-    const cleanJson = JSON.parse(responseText.replace(/```json|```/g, '').trim());
-    return SeverityOutputSchema.parse(cleanJson);
-  } catch (error) {
-    console.error('Severity Engine Error:', error);
-    return {
-      severity: 'CLINIC' as const,
-      reasoning: 'Unable to assess severity automatically.',
-      suggestedAction: 'Please consult a healthcare provider to be safe.'
-    };
-  }
+  return executeWithRetryAndFallback(
+    () => generateText(prompt),
+    SeverityOutputSchema,
+    fallback
+  );
 }

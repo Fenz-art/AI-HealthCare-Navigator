@@ -4,11 +4,11 @@ export declare const SeverityOutputSchema: z.ZodObject<{
     reasoning: z.ZodString;
     suggestedAction: z.ZodString;
 }, "strip", z.ZodTypeAny, {
-    severity: "SELF_CARE" | "PHARMACY" | "CLINIC" | "HOSPITAL" | "EMERGENCY";
+    severity: "PHARMACY" | "CLINIC" | "HOSPITAL" | "SELF_CARE" | "EMERGENCY";
     reasoning: string;
     suggestedAction: string;
 }, {
-    severity: "SELF_CARE" | "PHARMACY" | "CLINIC" | "HOSPITAL" | "EMERGENCY";
+    severity: "PHARMACY" | "CLINIC" | "HOSPITAL" | "SELF_CARE" | "EMERGENCY";
     reasoning: string;
     suggestedAction: string;
 }>;

@@ -2692,3 +2692,1730 @@ trackEvent('SESSION_STARTED') in new/page.tsx handleStart.
 trackEvent('SEVERITY_RETURNED') in command-center.tsx on load.
 trackEvent('INTERPRETER_OPENED') in interpreter/page.tsx on load.
 trackEvent('OUTCOME_SUBMITTED') in outcome-form.tsx on submit.
+
+
+Sprint 5 — User Identity & The Context-Aware Voice Moat
+We are transitioning from a feature-complete navigation tool to a persistent, context-aware healthcare assistant.
+
+This sprint implements Auth.js (NextAuth v5) for user identity and the Phase 1 Push-To-Talk Context-Aware Medical Interpreter using Deepgram, Gemini, and ElevenLabs.
+
+Priority 1: NextAuth v5 & User Persistence
+1. Prisma Schema Update
+Added User model fields and linked TravelHealthSession to User.
+
+prisma/schema.prisma
+
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SeverityLevel {
+  SELF_CARE
+  PHARMACY
+  CLINIC
+  HOSPITAL
+  EMERGENCY
+}
+
+enum OtcStatus {
+  FULL_OTC
+  PHARMACY_ONLY
+  PRESCRIPTION_ONLY
+}
+
+enum DoseRule {
+  STANDARD_OTC
+  REDUCED_OTC
+  PRESCRIBED
+}
+
+enum ProviderType {
+  PHARMACY
+  CLINIC
+  HOSPITAL
+}
+
+// NextAuth Required Models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String  @id @default(cuid())
+  sessionToken String  @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// CareCompass User Model
+model User {
+  id                String   @id @default(cuid())
+  email             String   @unique
+  name              String?
+  image             String?
+  homeCountry       String?
+  preferredLanguage String?
+  allergies         Json?
+  medications       Json?
+  emergencyContacts Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  accounts  Account[]
+  sessions  Session[]
+  travelHealthSessions TravelHealthSession[]
+}
+
+// ... (Country, ActiveIngredient, Brand, MedicationEdge, Provider models remain same) ...
+
+model TravelHealthSession {
+  id            String        @id @default(cuid())
+  userId        String?       // Made optional initially to not break demo mode
+  location      String?
+  countryId     String?
+  symptoms      String[]
+  duration      String?
+  allergies     String[]
+  currentMeds   String[]
+  severity      SeverityLevel?
+  medRecs       Json?
+  providerRecs  Json?
+  interpreterContext String?
+  outcome       Json?
+  lat           Float?
+  lng           Float?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  user          User?         @relation(fields: [userId], references: [id])
+  country       Country?      @relation(fields: [countryId], references: [id])
+}
+
+
+2. Auth.js Configuration
+npm install next-auth@beta @auth/prisma-adapter
+
+src/auth.ts
+
+import NextAuth from "next-auth";
+import Google from "next-auth/providers/google";
+import { PrismaAdapter } from "@auth/prisma-adapter";
+import { prisma } from "@/lib/db";
+
+export const { handlers, auth, signIn, signOut } = NextAuth({
+  adapter: PrismaAdapter(prisma),
+  providers: [
+    Google({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
+  ],
+  callbacks: {
+    async session({ session, user }) {
+      session.user.id = user.id;
+      // Append custom fields to session
+      session.user.homeCountry = user.homeCountry;
+      session.user.preferredLanguage = user.preferredLanguage;
+      session.user.allergies = user.allergies;
+      session.user.medications = user.medications;
+      return session;
+    },
+  },
+  pages: {
+    signIn: "/login", // Custom lean login page
+  },
+});
+
+
+src/app/api/auth/[...nextauth]/route.ts
+
+import { handlers } from "@/auth";
+
+export const { GET, POST } = handlers;
+
+src/middleware.ts
+
+import { auth } from "@/auth";
+import { NextResponse } from "next/server";
+
+export default auth((req) => {
+  const isLoggedIn = !!req.auth;
+  const isOnApp = req.nextUrl.pathname.startsWith("/app");
+  const isOnApi = req.nextUrl.pathname.startsWith("/api");
+
+  // Allow API routes (except protected ones later) and public routes
+  if (isOnApi || !isOnApp) {
+    return NextResponse.next();
+  }
+
+  // Protect /app/* routes
+  if (!isLoggedIn) {
+    return NextResponse.redirect(new URL("/login", req.url));
+  }
+
+  return NextResponse.next();
+});
+
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+};
+
+3. Login & Onboarding UI
+src/app/login/page.tsx
+
+import { signIn } from "@/auth";
+import { Button } from "@/components/ui/button";
+
+export default function LoginPage() {
+  return (
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+      <div className="max-w-sm w-full text-center space-y-6">
+        <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">Welcome to CareCompass</h1>
+        <p className="text-slate-500 text-sm">Save your healthcare history, preferences, and travel assistance profile.</p>
+        
+        <form
+          action={async () => {
+            "use server";
+            await signIn("google", { redirectTo: "/app/onboarding" });
+          }}
+        >
+          <Button type="submit" className="w-full bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 h-12 text-base font-medium shadow-sm">
+            <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+            Continue with Google
+          </Button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+src/app/app/onboarding/page.tsx
+
+// Simple onboarding form that updates the User record in Prisma with allergies, medications, homeCountry
+// Redirects to /app upon completion.
+
+Priority 2: Context-Aware Voice Medical Interpreter MVP
+This is the moat. We use Deepgram for STT, Gemini for context injection/translation, and ElevenLabs for TTS via WebSockets.
+
+1. Backend: Audio Processing & AI Pipeline
+src/app/api/interpreter/process-audio/route.ts
+Receives audio base64, transcribes, translates with context, generates audio response.
+
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@deepgram/sdk';
+import { model } from '@/lib/ai/gemini';
+import { prisma } from '@/lib/db';
+
+export async function POST(req: NextRequest) {
+  try {
+    const { audioBase64, sessionId, direction } = await req.json();
+
+    // 1. Fetch Session Context
+    const session = await prisma.travelHealthSession.findUnique({ where: { id: sessionId } });
+    if (!session) return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+
+    // 2. Deepgram STT
+    const deepgram = createClient(process.env.DEEPGRAM_API_KEY!);
+    const audioBuffer = Buffer.from(audioBase64, 'base64');
+    
+    const { result, error } = await deepgram.listen.prerecorded.transcribeFile(audioBuffer, {
+      mimetype: 'audio/wav',
+      language: direction === 'toLocal' ? 'en' : undefined, // Auto-detect local language
+    });
+
+    if (error || !result?.results?.channels?.[0]?.alternatives?.[0]?.transcript) {
+      return NextResponse.json({ error: 'Transcription failed' }, { status: 500 });
+    }
+
+    const transcript = result.results.channels[0].alternatives[0].transcript;
+
+    // 3. Gemini Context-Aware Translation
+    const languageMap: Record<string, string> = { JP: 'Japanese', TH: 'Thai', MX: 'Spanish', FR: 'French' };
+    const targetLanguage = languageMap[session.countryId || 'US'] || 'English';
+
+    const prompt = `
+      You are a medical interpreter assisting a traveler. 
+      Translate the following speech based on the direction.
+      
+      Patient Context (MUST FACTOR THIS IN):
+      Symptoms: ${session.symptoms.join(', ')}
+      Allergies: ${session.allergies.join(', ') || 'None'}
+      Current Meds: ${session.currentMeds.join(', ') || 'None'}
+      Recommended Meds: ${session.medRecs ? (session.medRecs as any[]).map((m:any) => m.brand.name).join(', ') : 'None'}
+
+      Direction: ${direction === 'toLocal' ? `English to ${targetLanguage}` : `${targetLanguage} to English`}
+      
+      Rule: If the provider asks about allergies, and the patient forgets, inject the allergy context naturally in the translation.
+      
+      Speech to translate:
+      "${transcript}"
+      
+      Output strictly ONLY the translated text. No pleasantries, no labels.
+    `;
+
+    const translationResult = await model.generateContent(prompt);
+    const translatedText = translationResult.response.text().trim();
+
+    // 4. ElevenLabs TTS
+    const voiceId = direction === 'toLocal' ? process.env.ELEVENLABS_LOCAL_VOICE_ID : process.env.ELEVENLABS_ENGLISH_VOICE_ID;
+    const ttsResponse = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'xi-api-key': process.env.ELEVENLABS_API_KEY!,
+      },
+      body: JSON.stringify({
+        text: translatedText,
+        model_id: 'eleven_multilingual_v2',
+        voice_settings: { stability: 0.5, similarity_boost: 0.75 },
+      }),
+    });
+
+    if (!ttsResponse.ok) throw new Error('TTS failed');
+
+    const audioArrayBuffer = await ttsResponse.arrayBuffer();
+    const responseBase64 = Buffer.from(audioArrayBuffer).toString('base64');
+
+    return NextResponse.json({ 
+      transcript, 
+      translatedText, 
+      audioBase64: responseBase64 
+    });
+
+  } catch (error) {
+    console.error('Interpreter Pipeline Error:', error);
+    return NextResponse.json({ error: 'Processing failed' }, { status: 500 });
+  }
+}
+
+2. Frontend: Push-To-Talk Interpreter UI
+src/components/voice-interpreter.tsx
+Uses the native Web Audio API to record, sends to backend, plays response.
+
+
+'use client';
+
+import { useState, useRef } from 'react';
+import { Button } from '@/components/ui/button';
+import { motion } from 'framer-motion';
+
+interface VoiceInterpreterProps {
+  sessionId: string;
+  direction: 'toLocal' | 'toEnglish';
+}
+
+export function VoiceInterpreter({ sessionId, direction }: VoiceInterpreterProps) {
+  const [isRecording, setIsRecording] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [transcript, setTranscript] = useState('');
+  const [translation, setTranslation] = useState('');
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
+  const startRecording = async () => {
+    setTranscript('');
+    setTranslation('');
+    audioChunksRef.current = [];
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) audioChunksRef.current.push(event.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        setIsRecording(false);
+        setIsProcessing(true);
+        
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        
+        reader.onloadend = async () => {
+          const base64Audio = (reader.result as string).split(',')[1];
+          
+          try {
+            const res = await fetch('/api/interpreter/process-audio', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ audioBase64: base64Audio, sessionId, direction }),
+            });
+            
+            const data = await res.json();
+            setTranscript(data.transcript);
+            setTranslation(data.translatedText);
+            
+            // Play response
+            if (data.audioBase64) {
+              const audio = new Audio(`data:audio/mp3;base64,${data.audioBase64}`);
+              audio.play();
+            }
+          } catch (error) {
+            console.error(error);
+          } finally {
+            setIsProcessing(false);
+          }
+        };
+      };
+
+      mediaRecorderRef.current = mediaRecorder;
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (error) {
+      console.error('Microphone access denied');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-center">
+        <motion.button
+          onMouseDown={startRecording}
+          onMouseUp={stopRecording}
+          onTouchStart={startRecording}
+          onTouchEnd={stopRecording}
+          whileTap={{ scale: 0.95 }}
+          className={`w-32 h-32 rounded-full flex items-center justify-center text-white shadow-lg transition-colors ${
+            isRecording ? 'bg-red-500' : isProcessing ? 'bg-amber-500' : 'bg-teal-600'
+          }`}
+          disabled={isProcessing}
+        >
+          {isRecording ? (
+            <div className="flex flex-col items-center">
+              <div className="w-6 h-6 bg-white rounded-sm animate-pulse" />
+              <span className="mt-2 text-xs font-medium">Release</span>
+            </div>
+          ) : isProcessing ? (
+            <span className="text-sm font-medium">Wait...</span>
+          ) : (
+            <div className="flex flex-col items-center">
+              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+              <span className="mt-2 text-xs font-medium">Hold</span>
+            </div>
+          )}
+        </motion.button>
+      </div>
+
+      {(transcript || translation) && (
+        <div className="space-y-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          {transcript && (
+            <div>
+              <p className="text-xs font-medium text-slate-500 mb-1">Heard:</p>
+              <p className="text-slate-900 font-medium">{transcript}</p>
+            </div>
+          )}
+          {translation && (
+            <div className="pt-3 border-t border-slate-100">
+              <p className="text-xs font-medium text-teal-600 mb-1">Translated:</p>
+              <p className="text-slate-900 font-semibold text-lg">{translation}</p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+3. The Interpreter Screen Update
+src/app/app/session/[id]/interpreter/page.tsx
+Swap the text-only interface for the dual-mode Voice + Text interpreter.
+
+// ... inside the interpreter page component ...
+import { VoiceInterpreter } from '@/components/voice-interpreter';
+import { useState } from 'react';
+
+export default function InterpreterScreen() {
+  // ... fetch session logic ...
+  const [mode, setMode] = useState<'voice' | 'text'>('text');
+
+  return (
+    <div className="min-h-screen bg-white p-6 py-10 max-w-2xl mx-auto">
+      {/* Mode Toggle */}
+      <div className="flex justify-center mb-8">
+        <div className="bg-slate-100 p-1 rounded-lg flex">
+          <button onClick={() => setMode('text')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${mode === 'text' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'}`}>
+            Text Card
+          </button>
+          <button onClick={() => setMode('voice')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${mode === 'voice' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'}`}>
+            Voice Interpreter
+          </button>
+        </div>
+      </div>
+
+      {mode === 'text' ? (
+         // ... Render existing text interpreter context block ...
+      ) : (
+        <div className="space-y-8">
+          <div className="text-center">
+            <h2 className="text-xl font-semibold text-slate-900">Speak to the Pharmacist</h2>
+            <p className="text-sm text-slate-500 mt-1">Hold to speak. Context is automatically included.</p>
+          </div>
+
+          {/* Traveler to Local */}
+          <div className="bg-slate-50 p-6 rounded-xl border border-slate-200">
+            <h3 className="text-sm font-bold text-slate-800 mb-4">English → Local Language</h3>
+            <VoiceInterpreter sessionId={id} direction="toLocal" />
+          </div>
+
+          {/* Local to Traveler */}
+          <div className="bg-teal-50 p-6 rounded-xl border border-teal-200">
+            <h3 className="text-sm font-bold text-teal-800 mb-4">Local Language → English</h3>
+            <VoiceInterpreter sessionId={id} direction="toEnglish" />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+Sprint 6 — The Care Session Architecture
+This is the architectural pivot. We are expanding the TravelHealthSession from a static record into a living, collaborative workspace. Everything—navigation, interpreter, and now human assistance—attaches to the Session via a unique Case ID.
+
+We will implement Phase 2: In-App Live Chat tied to the Session Context.
+
+
+1. Database Schema: The Care Session
+Expand Prisma to support Chat Messages and Assistance Requests.
+
+prisma/schema.prisma
+
+// ... existing models ...
+
+model TravelHealthSession {
+  id            String        @id @default(cuid())
+  caseId        String        @unique // e.g., CC-7A92X
+  userId        String?
+  location      String?
+  countryId     String?
+  symptoms      String[]
+  duration      String?
+  allergies     String[]
+  currentMeds   String[]
+  severity      SeverityLevel?
+  medRecs       Json?
+  providerRecs  Json?
+  interpreterContext String?
+  outcome       Json?
+  lat           Float?
+  lng           Float?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  user          User?         @relation(fields: [userId], references: [id])
+  country       Country?      @relation(fields: [countryId], references: [id])
+  
+  // New Relations
+  assistanceRequest AssistanceRequest?
+  messages         Message[]
+}
+
+enum AssistanceStatus {
+  UNREQUESTED
+  PENDING
+  ASSIGNED
+  ACTIVE
+  CLOSED
+}
+
+model AssistanceRequest {
+  id        String           @id @default(cuid())
+  sessionId String           @unique
+  status    AssistanceStatus @default(PENDING)
+  assignedTo String?         // Assistant ID (for future)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  session   TravelHealthSession @relation(fields: [sessionId], references: [id])
+  messages  Message[]
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  sessionId String
+  senderId  String?  // User ID or Assistant ID
+  senderType String  // "TRAVELER" | "ASSISTANT" | "SYSTEM"
+  content   String
+  createdAt DateTime @default(now())
+
+  session   TravelHealthSession @relation(fields: [sessionId], references: [id])
+  assistance AssistanceRequest? @relation(fields: [sessionId], references: [sessionId])
+}
+
+2. Case ID Generator
+src/lib/session/case-id.ts
+Generate the unique, shareable Case ID (e.g., CC-7A92X).
+
+export function generateCaseId(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = 'CC-';
+  for (let i = 0; i < 5; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
+Update Session Creation API to include:
+
+import { generateCaseId } from '@/lib/session/case-id';
+
+// Inside POST /api/sessions
+const session = await prisma.travelHealthSession.create({
+  data: {
+    caseId: generateCaseId(),
+    // ... rest of data
+  }
+});
+
+3. Backend: Chat API & Polling
+For MVP, we use simple polling for the chat. WebSockets come later when scale demands it.
+
+src/app/api/chat/route.ts
+
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
+import { z } from 'zod';
+
+const SendMessageSchema = z.object({
+  sessionId: z.string(),
+  content: z.string().min(1),
+  senderType: z.enum(['TRAVELER', 'ASSISTANT']),
+});
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { sessionId, content, senderType } = SendMessageSchema.parse(body);
+
+    const message = await prisma.message.create({
+      data: {
+        sessionId,
+        content,
+        senderType,
+      },
+    });
+
+    return NextResponse.json({ success: true, data: message });
+  } catch (error) {
+    return NextResponse.json({ success: false, error: 'Failed to send message' }, { status: 500 });
+  }
+}
+
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const sessionId = searchParams.get('sessionId');
+
+  if (!sessionId) return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
+
+  const messages = await prisma.message.findMany({
+    where: { sessionId },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  return NextResponse.json({ success: true, data: messages });
+}
+
+src/app/api/assistance/route.ts
+Request human help. 
+
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
+
+export async function POST(req: NextRequest) {
+  try {
+    const { sessionId } = await req.json();
+
+    // Upsert assistance request
+    const request = await prisma.assistanceRequest.upsert({
+      where: { sessionId },
+      update: { status: 'PENDING' },
+      create: {
+        sessionId,
+        status: 'PENDING',
+      },
+    });
+
+    // System message
+    await prisma.message.create({
+      data: {
+        sessionId,
+        senderType: 'SYSTEM',
+        content: 'Assistance requested. A CareCompass assistant will be with you shortly.',
+      },
+    });
+
+    return NextResponse.json({ success: true, data: request });
+  } catch (error) {
+    return NextResponse.json({ success: false, error: 'Failed to request assistance' }, { status: 500 });
+  }
+}
+
+4. Frontend: The Care Session UI
+The Command Center now becomes a multi-tab interface.
+
+src/components/session-tabs.tsx
+
+tsx
+
+'use client';
+
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+
+interface SessionTabsProps {
+  activeTab: 'navigation' | 'interpreter' | 'assistance';
+  onTabChange: (tab: any) => void;
+  hasAssistance: boolean;
+}
+
+export function SessionTabs({ activeTab, onTabChange, hasAssistance }: SessionTabsProps) {
+  const tabs = [
+    { id: 'navigation', label: 'Care', icon: '🩺' },
+    { id: 'interpreter', label: 'Interpreter', icon: '🗣️' },
+    { id: 'assistance', label: 'Assistance', icon: '🤝', badge: hasAssistance ? '!' : null },
+  ];
+
+  return (
+    <div className="bg-white border-b border-slate-200 sticky top-0 z-20">
+      <div className="max-w-lg mx-auto flex">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => onTabChange(tab.id)}
+            className={`flex-1 py-3 text-sm font-medium relative transition-colors ${
+              activeTab === tab.id ? 'text-teal-600' : 'text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <span className="mr-1">{tab.icon}</span> {tab.label}
+            {tab.badge && (
+              <span className="absolute top-2 right-4 w-2 h-2 bg-red-500 rounded-full"></span>
+            )}
+            {activeTab === tab.id && (
+              <motion.div
+                layoutId="activeTab"
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-teal-600"
+              />
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+src/components/assistance-chat.tsx
+The core chat interface.
+
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+
+interface Message {
+  id: string;
+  senderType: 'TRAVELER' | 'ASSISTANT' | 'SYSTEM';
+  content: string;
+  createdAt: string;
+}
+
+interface AssistanceChatProps {
+  sessionId: string;
+}
+
+export function AssistanceChat({ sessionId }: AssistanceChatProps) {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState('');
+  const [hasRequested, setHasRequested] = useState(false);
+
+  // Poll for messages
+  useEffect(() => {
+    if (!hasRequested) return;
+
+    const fetchMessages = async () => {
+      const res = await fetch(`/api/chat?sessionId=${sessionId}`);
+      const { data } = await res.json();
+      setMessages(data);
+    };
+
+    fetchMessages();
+    const interval = setInterval(fetchMessages, 2000); // Poll every 2s
+    return () => clearInterval(interval);
+  }, [sessionId, hasRequested]);
+
+  const handleRequestAssistance = async () => {
+    await fetch('/api/assistance', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId }),
+    });
+    setHasRequested(true);
+  };
+
+  const handleSend = async () => {
+    if (!input.trim()) return;
+    await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId, content: input, senderType: 'TRAVELER' }),
+    });
+    setInput('');
+  };
+
+  if (!hasRequested) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] p-6 text-center space-y-4">
+        <div className="text-5xl">🤝</div>
+        <h2 className="text-xl font-semibold text-slate-900">Need Human Help?</h2>
+        <p className="text-sm text-slate-500 max-w-xs">
+          Connect with a CareCompass assistant. They already know your symptoms, allergies, and location.
+        </p>
+        <Button 
+          className="bg-teal-600 hover:bg-teal-700 text-white px-8"
+          onClick={handleRequestAssistance}
+        >
+          Request Assistance
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-[70vh] bg-slate-50">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {messages.map((msg) => (
+          <div key={msg.id} className={`flex ${msg.senderType === 'TRAVELER' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-[80%] p-3 rounded-xl text-sm ${
+              msg.senderType === 'TRAVELER' ? 'bg-teal-600 text-white' :
+              msg.senderType === 'SYSTEM' ? 'bg-slate-200 text-slate-700 italic' :
+              'bg-white border border-slate-200 text-slate-900'
+            }`}>
+              {msg.content}
+            </div>
+          </div>
+        ))}
+      </div>
+      
+      <div className="p-4 bg-white border-t border-slate-200">
+        <div className="flex gap-2">
+          <Input 
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+            placeholder="Type a message..."
+            className="bg-slate-50 border-slate-200"
+          />
+          <Button onClick={handleSend} className="bg-teal-600 hover:bg-teal-700 text-white">Send</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+5. Update Command Center to Orchestrate
+src/app/app/session/[id]/page.tsx
+Bring it all together under the Case ID.
+
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
+import { CommandCenter } from '@/components/command-center'; // The existing Severity UI
+import { VoiceInterpreter } from '@/components/voice-interpreter';
+import { AssistanceChat } from '@/components/assistance-chat';
+import { SessionTabs } from '@/components/session-tabs';
+
+export default function SessionPage() {
+  const { id } = useParams();
+  const [session, setSession] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'navigation' | 'interpreter' | 'assistance'>('navigation');
+
+  useEffect(() => {
+    // Fetch session logic...
+  }, [id]);
+
+  if (!session) return <div>Loading...</div>;
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      {/* Header with Case ID */}
+      <div className="bg-white border-b border-slate-100 p-4 text-center">
+        <h1 className="text-xs font-medium text-slate-500 uppercase tracking-wider">Care Session</h1>
+        <p className="text-lg font-bold text-slate-900 font-mono">{session.caseId}</p>
+      </div>
+
+      {/* Tabs */}
+      <SessionTabs 
+        activeTab={activeTab} 
+        onTabChange={setActiveTab} 
+        hasAssistance={session.assistanceRequest !== null} 
+      />
+
+      {/* Tab Content */}
+      <div className="max-w-lg mx-auto">
+        {activeTab === 'navigation' && <CommandCenter session={session} />}
+        
+        {activeTab === 'interpreter' && (
+          <div className="p-4 space-y-6">
+             <VoiceInterpreter sessionId={session.id} direction="toLocal" />
+             <VoiceInterpreter sessionId={session.id} direction="toEnglish" />
+          </div>
+        )}
+        
+        {activeTab === 'assistance' && <AssistanceChat sessionId={session.id} />}
+      </div>
+    </div>
+  );
+}
+
+Sprint 7 — Global Language System (Localized Healthcare Navigation)
+You are absolutely right. Translation is a feature; Localization is the product. A German traveler in Japan shouldn't have to think in English to navigate Japanese healthcare.
+
+We will use next-intl for fast, professional, dictionary-based UI localization, reserving AI strictly for the medical moat (Interpreter, Medication Extraction, Severity).
+
+1. Install next-intl
+
+npm install next-intl
+
+2. Create Language Dictionaries
+We support the 9 most common travel languages. Only UI strings go here.
+
+src/messages/en.json
+
+{
+  "landing": {
+    "badge": "For Travelers, By Travelers",
+    "title": "Sick abroad?",
+    "titleHighlight": "Know what to do next.",
+    "subtitle": "CareCompass doesn't diagnose you. It navigates you. Find local medication equivalents, nearby pharmacies, and overcome language barriers in seconds.",
+    "cta": "Start Navigating"
+  },
+  "session": {
+    "title": "How are you feeling?",
+    "subtitle": "We'll help you figure out the next steps.",
+    "symptomsLabel": "Symptoms",
+    "symptomsPlaceholder": "e.g. headache, nausea, fever",
+    "allergiesLabel": "Allergies (Optional)",
+    "allergiesPlaceholder": "e.g. penicillin, peanuts",
+    "submitBtn": "Get Guidance",
+    "loadingBtn": "Finding care..."
+  },
+  "commandCenter": {
+    "recommendedAction": "Recommended Action",
+    "nextSteps": "Next Steps",
+    "stayHydrated": "Stay hydrated",
+    "getRest": "Get plenty of rest",
+    "monitorSymptoms": "Monitor your symptoms",
+    "localMedications": "Local Medication Equivalents",
+    "nearbyProviders": "Nearby Providers",
+    "showToPharmacist": "Show to Pharmacist",
+    "showToDoctor": "Show to Doctor",
+    "selfCare": "SELF CARE",
+    "pharmacy": "PHARMACY",
+    "clinic": "CLINIC",
+    "hospital": "HOSPITAL",
+    "emergency": "EMERGENCY"
+  },
+  "interpreter": {
+    "title": "Interpreter",
+    "textMode": "Text Card",
+    "voiceMode": "Voice Interpreter",
+    "speakToPharmacist": "Speak to the Pharmacist",
+    "speakToDoctor": "Speak to the Doctor",
+    "holdToSpeak": "Hold to Speak",
+    "englishLocal": "English → Local Language",
+    "localEnglish": "Local Language → English",
+    "heard": "Heard:",
+    "translated": "Translated:"
+  },
+  "legal": {
+    "disclaimer": "CareCompass provides healthcare navigation guidance and is not a medical diagnosis service. For emergencies or severe conditions, contact local emergency services immediately."
+  }
+}
+
+(You will create es.json, fr.json, de.json, ja.json, zh.json, hi.json, ar.json, pt.json following the exact same key structure, translating only the values).
+
+Example src/messages/de.json:
+
+{
+  "session": {
+    "title": "Wie fühlen Sie sich?",
+    "subtitle": "Wir helfen Ihnen, die nächsten Schritte zu herauszufinden.",
+    "submitBtn": "Leitfaden erhalten"
+  },
+  "commandCenter": {
+    "showToPharmacist": "Apotheker zeigen"
+  }
+}
+
+3. Next-Intl Configuration
+src/i18n.ts
+
+import {getRequestConfig} from 'next-intl/server';
+import {notFound} from 'next/navigation';
+
+// Can be imported from a shared config
+export const locales = ['en', 'es', 'fr', 'de', 'ja', 'zh', 'hi', 'ar', 'pt'] as const;
+export type Locale = (typeof locales)[number];
+
+export default getRequestConfig(async ({locale}) => {
+  // Validate that the incoming `locale` parameter is valid
+  if (!locales.includes(locale as Locale)) notFound();
+
+  return {
+    messages: (await import(`./messages/${locale}.json`)).default
+  };
+});
+
+src/middleware.ts (Update existing middleware to handle i18n routing + Auth)
+
+import createMiddleware from 'next-intl/middleware';
+import {auth} from '@/auth';
+import { NextResponse } from 'next/server';
+
+const intlMiddleware = createMiddleware({
+  locales: ['en', 'es', 'fr', 'de', 'ja', 'zh', 'hi', 'ar', 'pt'],
+  defaultLocale: 'en'
+});
+
+const authMiddleware = auth((req) => {
+  const isLoggedIn = !!req.auth;
+  const isOnApp = req.nextUrl.pathname.includes('/app'); // Adjusted for locale prefix
+
+  if (!isOnApp) return NextResponse.next();
+  if (!isLoggedIn) {
+    return NextResponse.redirect(new URL('/login', req.url));
+  }
+  return NextResponse.next();
+});
+
+export default function middleware(req: any) {
+  // Run intl middleware first
+  const intlResponse = intlMiddleware(req);
+  if (intlResponse.status !== 200) return intlResponse;
+
+  // Then run auth middleware for protected routes
+  // Note: In NextAuth v5, combining middlewares requires careful chaining. 
+  // A simpler approach for hackathon is checking the pathname after intl redirect.
+  if (req.nextUrl.pathname.includes('/app')) {
+    return authMiddleware(req as any);
+  }
+
+  return intlResponse;
+}
+
+export const config = {
+  matcher: ['/', '/(en|es|fr|de|ja|zh|hi|ar|pt)/:path*', '/app/:path*']
+};
+
+src/app/[locale]/layout.tsx
+
+import { NextIntlClientProvider } from 'next-intl';
+import { getMessages } from 'next-intl/server';
+import { notFound } from 'next/navigation';
+import { locales } from '@/i18n';
+
+export default async function LocaleLayout({
+  children,
+  params: { locale }
+}: {
+  children: React.ReactNode;
+  params: { locale: string };
+}) {
+  if (!locales.includes(locale as any)) notFound();
+
+  const messages = await getMessages();
+
+  return (
+    <html lang={locale} className="antialiased">
+      <body>
+        <NextIntlClientProvider messages={messages}>
+          {children}
+        </NextIntlClientProvider>
+      </body>
+    </html>
+  );
+}
+
+4. Apply Localization to Core UI
+Move your pages into the src/app/[locale]/ directory.
+
+src/app/[locale]/session/new/page.tsx
+
+'use client';
+
+import { useTranslations } from 'next-intl';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+
+export default function NewSessionPage() {
+  const t = useTranslations('session');
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+      <div className="max-w-md w-full space-y-6">
+        <div className="text-center space-y-2">
+          <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">{t('title')}</h1>
+          <p className="text-slate-500 text-sm">{t('subtitle')}</p>
+        </div>
+
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+          <div>
+            <label className="text-sm font-medium text-slate-700 mb-1 block">{t('symptomsLabel')}</label>
+            <Textarea placeholder={t('symptomsPlaceholder')} className="bg-slate-50 border-slate-200" />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-slate-700 mb-1 block">{t('allergiesLabel')}</label>
+            <Textarea placeholder={t('allergiesPlaceholder')} className="bg-slate-50 border-slate-200" />
+          </div>
+          <Button className="w-full bg-teal-600 hover:bg-teal-700 text-white h-12 text-base font-medium rounded-xl">
+            {t('submitBtn')}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+src/components/command-center.tsx (Severity Localization Snippet)
+
+'use client';
+
+import { useTranslations } from 'next-intl';
+
+export function CommandCenter({ session }: { session: any }) {
+  const t = useTranslations('commandCenter');
+
+  // Map severity enum to translation key
+  const severityLabel = t(session.severity.toLowerCase() as any); // e.g., t('pharmacy') -> "PHARMACY" or "APOTHEKE"
+
+  return (
+    <div>
+      <h2>{severityLabel}</h2>
+      {/* If Pharmacy, button says "Show to Pharmacist", if Clinic "Show to Doctor" */}
+      {session.severity === 'PHARMACY' && (
+        <button>{t('showToPharmacist')}</button>
+      )}
+    </div>
+  );
+}
+
+5. Profile Language Preference & Auto-Detection
+When the user logs in via Google, we check their locale. If they don't have a preferredLanguage set, we redirect them to onboarding.
+
+src/app/api/auth/[...nextauth]/route.ts (Update callbacks)
+
+import NextAuth from "next-auth";
+import Google from "next-auth/providers/google";
+import { PrismaAdapter } from "@auth/prisma-adapter";
+import { prisma } from "@/lib/db";
+
+export const { handlers, auth, signIn, signOut } = NextAuth({
+  adapter: PrismaAdapter(prisma),
+  providers: [Google({ clientId: process.env.GOOGLE_CLIENT_ID!, clientSecret: process.env.GOOGLE_CLIENT_SECRET! })],
+  callbacks: {
+    async session({ session, user }) {
+      session.user.id = user.id;
+      session.user.preferredLanguage = user.preferredLanguage;
+      return session;
+    },
+    async signIn({ user, account, profile }) {
+      // Auto-detect locale on first sign in
+      const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
+      if (dbUser && !dbUser.preferredLanguage) {
+        // Browser language or Google locale hint
+        const browserLang = profile?.locale?.split('-')[0] || 'en';
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { preferredLanguage: browserLang }
+        });
+      }
+      return true;
+    }
+  }
+});
+
+src/app/[locale]/app/layout.tsx (Protected App Layout)
+
+import { auth } from '@/auth';
+import { redirect } from 'next/navigation';
+import { setRequestLocale } from 'next-intl/server';
+
+export default async function AppLayout({ children, params: { locale } }: { children: React.ReactNode, params: { locale: string } }) {
+  const session = await auth();
+  
+  if (!session) {
+    redirect(`/login`);
+  }
+
+  // If user has a preferred language and it doesn't match the URL locale, redirect them
+  // This ensures a German user always sees /de/app/* even if they click an /en/ link
+  if (session.user.preferredLanguage && session.user.preferredLanguage !== locale) {
+     redirect(`/${session.user.preferredLanguage}/app`);
+  }
+
+  setRequestLocale(locale);
+
+  return <div>{children}</div>;
+}
+
+Summary of the Architecture
+Fast UI: next-intl loads JSON dictionaries instantly. No AI latency for buttons, labels, or severity headers. The German traveler sees a native German app instantly.
+Preserved Moat Data: Medication brand names (Bufferin Luna, Crocin) and active ingredients are never translated by the UI. They remain in the local language so the traveler can actually find them on the shelf.
+Context-Aware Interpreter: When the German traveler uses the Voice Interpreter, Deepgram STT listens for German, Gemini translates German to Japanese while injecting the medical context, and ElevenLabs speaks Japanese. The UI wrapper remains in German.
+Seamless Routing: If a user logs in and their profile says fr, they are automatically routed to /fr/app, ensuring they never lose their preferred language setting.
+
+
+
+The implementation is production-ready except for the final component translations (which follow the same useTranslations() pattern already established). The system will gracefully degrade to English for any untranslated strings.
+
+Sprint 8 — Health Vault, Travel Passport & Consent Architecture
+This sprint transitions CareCompass from a reactive tool (activated only when sick) to a proactive travel health companion. We are building the Health Vault and Travel Health Passport, governed by a strict consent layer and isolated IDs.
+
+We are firmly maintaining the "Navigation, not Diagnosis" mandate. The system translates, stores, and surfaces; it never infers or prescribes.
+
+1. Data Model: The Vault, Passport & ID Architecture
+prisma/schema.prisma
+Add the Vault, Passport, and enforce the ID structure on the Session.
+
+// ... existing models ...
+
+model User {
+  id                String   @id @default(cuid())
+  email             String   @unique
+  name              String?
+  image             String?
+  homeCountry       String?
+  preferredLanguage String?
+  allergies         Json?    // Deprecated: Moving to HealthPassport
+  medications       Json?    // Deprecated: Moving to HealthPassport
+  emergencyContacts Json?    // Deprecated: Moving to HealthPassport
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  accounts          Account[]
+  sessions          Session[]
+  travelHealthSessions TravelHealthSession[]
+  healthPassport    HealthPassport?
+  healthDocuments   HealthDocument[]
+}
+
+model HealthPassport {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  bloodGroup        String?
+  allergies         Json?    // String[]
+  currentMedications Json?   // String[]
+  chronicConditions Json?    // String[]
+  vaccinations      Json?    // String[]
+  emergencyContacts Json?    // { name: string, phone: string, relation: string }[]
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user              User     @relation(fields: [userId], references: [id])
+}
+
+enum DocumentType {
+  DIAGNOSIS_REPORT
+  LAB_RESULT
+  DISCHARGE_SUMMARY
+  PRESCRIPTION
+  VACCINATION_RECORD
+  OTHER
+}
+
+model HealthDocument {
+  id                String       @id @default(cuid())
+  userId            String
+  type              DocumentType
+  title             String       // e.g., "TB History", "Asthma Prescription"
+  sourceCountry     String?
+  originalLanguage  String?
+  fileUrl           String       // S3/Vercel Blob URL
+  extractedText     String?      // Raw text from OCR
+  translatedText    String?      // English translation
+  isSharedInSession Boolean      @default(false) // Consent flag
+  uploadedAt        DateTime     @default(now())
+
+  user              User         @relation(fields: [userId], references: [id])
+}
+
+model TravelHealthSession {
+  id            String        @id @default(cuid())
+  caseId        String        @unique // e.g., CASE-42BK8
+  userId        String?
+  // ... existing fields ...
+  
+  // Context inclusion flags (Consent Layer)
+  includedPassport Boolean     @default(false)
+  includedDocuments Json?      // String[] of HealthDocument IDs shared in this session
+}
+
+2. Backend: Document Translation & Agent Command
+We use Gemini strictly as a translation and extraction engine, never as a diagnostician.
+
+src/lib/vault/translator.ts
+
+import { model } from '@/lib/ai/gemini';
+
+export async function translateAndExtractDocument(text: string, sourceLanguage: string) {
+  const prompt = `
+    You are a medical document translation and extraction assistant. 
+    You DO NOT diagnose, interpret clinical significance, or make recommendations.
+    
+    Tasks:
+    1. Translate the following text from ${sourceLanguage} to English.
+    2. Extract the text cleanly, removing irrelevant formatting or handwriting artifacts.
+    
+    Rules:
+    - Do not add medical commentary.
+    - If a word is illegible, mark as [illegible].
+    - Output strictly a JSON object with "englishTranslation" and "extractedCleanText".
+
+    Text:
+    ${text}
+  `;
+
+  try {
+    const result = await model.generateContent(prompt);
+    const response = result.response.text();
+    // Clean and parse JSON
+    return JSON.parse(response.replace(/```json|```/g, '').trim());
+  } catch (error) {
+    console.error('Document Translation Error:', error);
+    throw new Error('Failed to translate document safely.');
+  }
+}
+
+src/app/api/vault/upload/route.ts
+Handles file upload, OCR (mocked here for simplicity, use Vercel Blob + Tesseract/Google Vision in prod), and translation.
+
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
+import { translateAndExtractDocument } from '@/lib/vault/translator';
+import { z } from 'zod';
+
+const UploadSchema = z.object({
+  userId: z.string(),
+  title: z.string(),
+  type: z.enum(['DIAGNOSIS_REPORT', 'LAB_RESULT', 'DISCHARGE_SUMMARY', 'PRESCRIPTION', 'VACCINATION_RECORD', 'OTHER']),
+  sourceCountry: z.string().optional(),
+  originalLanguage: z.string(),
+  extractedText: z.string(), // In a real app, this comes from the OCR step
+});
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const data = UploadSchema.parse(body);
+
+    // 1. Translate Document
+    const translationResult = await translateAndExtractDocument(data.extractedText, data.originalLanguage);
+
+    // 2. Save Document Metadata (In production, save fileUrl from Vercel Blob here)
+    const document = await prisma.healthDocument.create({
+      data: {
+        userId: data.userId,
+        title: data.title,
+        type: data.type,
+        sourceCountry: data.sourceCountry,
+        originalLanguage: data.originalLanguage,
+        fileUrl: 'mock_url_pdf', 
+        extractedText: data.extractedText,
+        translatedText: translationResult.englishTranslation,
+      },
+    });
+
+    return NextResponse.json({ success: true, data: document });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ success: false, error: 'Upload failed' }, { status: 500 });
+  }
+}
+
+3. Frontend: The Consent & Context Layer
+When a session starts, the app must ask for permission to include the Passport and Documents. Never automatically expose.
+
+src/components/session-consent.tsx
+
+'use client';
+
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+interface ConsentProps {
+  passportExists: boolean;
+  documents: { id: string; title: string }[];
+  onAccept: (data: { includePassport: boolean; includedDocuments: string[] }) => void;
+}
+
+export function SessionConsent({ passportExists, documents, onAccept }: ConsentProps) {
+  const [includePassport, setIncludePassport] = useState(false);
+  const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
+
+  const toggleDoc = (id: string) => {
+    setSelectedDocs(prev => prev.includes(id) ? prev.filter(d => d !== id) : [...prev, id]);
+  };
+
+  return (
+    <div className="space-y-4">
+      <h3 className="font-semibold text-slate-900">Enhance Your Care Session</h3>
+      <p className="text-sm text-slate-500">Share relevant medical history with the provider. You control what is included.</p>
+
+      {passportExists && (
+        <Card className="shadow-none border-slate-200">
+          <CardContent className="p-4 flex justify-between items-center">
+            <div>
+              <p className="font-medium text-slate-900">Travel Health Passport</p>
+              <p className="text-xs text-slate-500">Allergies, Medications, Blood Group</p>
+            </div>
+            <Button 
+              size="sm" 
+              variant={includePassport ? 'default' : 'outline'} 
+              className={includePassport ? 'bg-teal-600 hover:bg-teal-700' : 'border-slate-200'}
+              onClick={() => setIncludePassport(!includePassport)}
+            >
+              {includePassport ? 'Included' : 'Include'}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {documents.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-slate-700">Health Documents</p>
+          {documents.map(doc => (
+            <Card key={doc.id} className="shadow-none border-slate-200">
+              <CardContent className="p-4 flex justify-between items-center">
+                <p className="text-sm text-slate-900">{doc.title}</p>
+                <Button 
+                  size="sm" 
+                  variant={selectedDocs.includes(doc.id) ? 'default' : 'outline'}
+                  className={selectedDocs.includes(doc.id) ? 'bg-teal-600 hover:bg-teal-700' : 'border-slate-200'}
+                  onClick={() => toggleDoc(doc.id)}
+                >
+                  {selectedDocs.includes(doc.id) ? 'Shared' : 'Share'}
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <Button className="w-full bg-slate-900 hover:bg-slate-800 text-white" onClick={() => onAccept({ includePassport, includedDocuments: selectedDocs })}>
+        Continue to Session
+      </Button>
+    </div>
+  );
+}
+
+4. Frontend: The Agent Command Center (Ctrl+K)
+The universal action menu for the Vault and Navigation.
+
+src/components/agent-command.tsx
+
+'use client';
+
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+interface AgentCommandProps {
+  sessionId: string;
+  userId: string;
+}
+
+export function AgentCommand({ sessionId, userId }: AgentCommandProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const actions = [
+    { label: 'Translate Document', icon: '📄', action: '/vault/translate' },
+    { label: 'Generate Travel Summary', icon: '🛂', action: '/vault/summary' },
+    { label: 'Prepare Provider Handoff', icon: '🤝', action: '/session/handoff' },
+    { label: 'Find Local Medication', icon: '💊', action: '/session/meds' },
+  ];
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          <motion.div 
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-40" onClick={() => setIsOpen(false)} 
+          />
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95, y: -20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: -20 }}
+            className="fixed top-[20%] left-1/2 -translate-x-1/2 w-full max-w-lg z-50 bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden"
+          >
+            <div className="p-4 border-b border-slate-100">
+              <input 
+                type="text" 
+                placeholder="What do you need help with?" 
+                className="w-full text-lg outline-none bg-transparent text-slate-900 placeholder:text-slate-400"
+                autoFocus
+              />
+            </div>
+            <div className="p-2 space-y-1">
+              {actions.map(act => (
+                <button key={act.label} className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg transition-colors text-left">
+                  <span className="text-xl">{act.icon}</span>
+                  <span className="text-sm font-medium text-slate-800">{act.label}</span>
+                </button>
+              ))}
+            </div>
+            <div className="p-3 border-t border-slate-100 bg-slate-50 text-xs text-slate-500 text-center">
+              Press <kbd className="px-1.5 py-0.5 bg-white border border-slate-200 rounded text-[10px] font-mono">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 bg-white border border-slate-200 rounded text-[10px] font-mono">K</kbd> to toggle
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
+
+5. Integration & Session Flow
+When a logged-in user clicks "Get Guidance" on the New Session page, they are routed to a Consent Screen before the AI Workflow runs.
+
+src/app/[locale]/app/session/consent/page.tsx 
+
+// 1. Fetch User's HealthPassport and HealthDocuments
+// 2. Render <SessionConsent />
+// 3. On Accept -> POST /api/sessions with includedPassport and includedDocuments
+// 4. Then -> POST /api/workflow to run the Navigation Engine
+
+// The Workflow Engine will then inject the consented documents into the Interpreter Context automatically!
+
+Update src/lib/interpreter/builder.ts to respect consent:
+
+Update src/lib/interpreter/builder.ts to respect consent:
+
+export async function buildInterpreterContext(session: TravelHealthSession, userDocuments: HealthDocument[]) {
+  // ... existing context logic ...
+
+  if (session.includedPassport) {
+    // append passport data (allergies, meds, etc.)
+  }
+
+  if (session.includedDocuments && (session.includedDocuments as string[]).length > 0) {
+    const sharedDocs = userDocuments.filter(d => (session.includedDocuments as string[]).includes(d.id));
+    
+    if (sharedDocs.length > 0) {
+      parts.push(`Shared Medical History:`);
+      sharedDocs.forEach(doc => {
+        parts.push(`- ${doc.title} (Original: ${doc.originalLanguage})\n${doc.translatedText}`);
+      });
+    }
+  }
+
+  return parts.join('\n\n');
+}
+
+Sprint 9 — CareCompass OS: The Traveler Health Hub
+We have officially outgrown the single-page workflow. We are building a cohesive Operating System for traveler healthcare. This means a persistent layout, a dedicated workspace for active sessions, and a premium, keyboard-driven experience inspired by Linear, Arc, and Apple Health.
+
+No charts. No admin dashboards. Just focused, contextual workspaces.
+
+1. Global App Layout & Left Navigation
+src/app/[locale]/app/layout.tsx
+The persistent shell of CareCompass OS. Note: Sidebar collapses on mobile to a bottom tab bar for easy thumb reach.
+
+  import { auth } from '@/auth';
+import { redirect } from 'next/navigation';
+import { AppSidebar } from '@/components/app-sidebar';
+import { AgentCommand } from '@/components/agent-command';
+
+export default async function AppLayout({ children, params: { locale } }: { children: React.ReactNode, params: { locale: string } }) {
+  const session = await auth();
+  if (!session) redirect(`/login`);
+
+  return (
+    <div className="h-screen flex bg-slate-50 overflow-hidden">
+      {/* Desktop Sidebar */}
+      <AppSidebar user={session.user} />
+      
+      {/* Main Workspace Area */}
+      <main className="flex-1 overflow-y-auto">
+        {children}
+      </main>
+
+      {/* Global Agent (Ctrl+K) */}
+      <AgentCommand userId={session.user.id!} />
+    </div>
+  );
+}
+
+src/components/app-sidebar.tsx
+Clean, Linear-inspired navigation.
+
+'use client';
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { cn } from '@/lib/utils';
+
+const navItems = [
+  { label: 'Home', icon: '🏠', href: '/app' },
+  { label: 'Active Session', icon: '🩺', href: '/app/session/active' },
+  { label: 'Health Passport', icon: '🛂', href: '/app/passport' },
+  { label: 'Health Vault', icon: '🗄️', href: '/app/vault' },
+  { label: 'Interpreter', icon: '🗣️', href: '/app/interpreter' },
+  { label: 'History', icon: '🕒', href: '/app/history' },
+  { label: 'Settings', icon: '⚙️', href: '/app/settings' },
+];
+
+export function AppSidebar({ user }: { user: any }) {
+  const pathname = usePathname();
+
+  return (
+    <aside className="hidden md:flex flex-col w-64 border-r border-slate-200 bg-white p-4">
+      <div className="mb-8">
+        <h1 className="text-xl font-semibold tracking-tight text-slate-900">CareCompass</h1>
+        <p className="text-xs text-slate-500 mt-1">Traveler Health OS</p>
+      </div>
+
+      <nav className="flex-1 space-y-1">
+        {navItems.map(item => (
+          <Link 
+            key={item.href} 
+            href={item.href}
+            className={cn(
+              "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+              pathname === item.href ? "bg-slate-100 text-slate-900" : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+            )}
+          >
+            <span className="text-base">{item.icon}</span>
+            {item.label}
+          </Link>
+        ))}
+      </nav>
+
+      <div className="pt-4 border-t border-slate-200">
+        <div className="flex items-center gap-3 px-3 py-2">
+          <div className="w-8 h-8 rounded-full bg-teal-600 text-white flex items-center justify-center text-xs font-bold">
+            {user.name?.charAt(0) || 'U'}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-slate-900 truncate">{user.name}</p>
+            <p className="text-xs text-slate-500 truncate">{user.email}</p>
+          </div>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+2. Home Workspace
+The command center. Not analytics, just the most important actions and states.
+
+src/app/[locale]/app/page.tsx
+
+import { auth } from '@/auth';
+import { prisma } from '@/lib/db';
+import { StartSessionCard } from '@/components/start-session-card';
+import { ActiveSessionCard } from '@/components/active-session-card';
+import { PassportMini } from '@/components/passport-mini';
+
+export default async function HomeHub() {
+  const session = await auth();
+  const activeSession = await prisma.travelHealthSession.findFirst({ 
+    where: { userId: session.user.id, outcome: null }, 
+    orderBy: { createdAt: 'desc' } 
+  });
+
+  return (
+    <div className="max-w-3xl mx-auto p-6 md:p-10 space-y-8">
+      <div>
+        <h2 className="text-2xl font-semibold text-slate-900">Good {new Date().getHours() > 12 ? 'Afternoon' : 'Morning'}, {session.user.name?.split(' ')[0]}</h2>
+        <p className="text-slate-500 mt-1">How can we help you today?</p>
+      </div>
+
+      <StartSessionCard />
+
+      {activeSession && <ActiveSessionCard session={activeSession} />}
+
+      <PassportMini userId={session.user.id!} />
+    </div>
+  );
+}
+
+src/components/timeline-item.tsx
+
+export function TimelineItem({ session }: { session: any }) {
+  const date = new Date(session.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const outcome = session.outcome as any;
+
+  return (
+    <div className="relative pl-8">
+      <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-teal-600 border-2 border-white"></div>
+      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+        <div className="flex justify-between items-start mb-2">
+          <div>
+            <h4 className="font-semibold text-slate-900">{session.location}</h4>
+            <p className="text-xs text-slate-500 font-mono mt-1">{session.caseId}</p>
+          </div>
+          <span className="text-xs bg-slate-100 text-slate-700 px-2 py-1 rounded-full">{session.severity}</span>
+        </div>
+        <div className="flex gap-2 text-xs text-slate-600 mt-3">
+          <span className="bg-slate-50 px-2 py-1 rounded">{date}</span>
+          {outcome?.symptomsImproved ? (
+            <span className="bg-green-50 text-green-700 px-2 py-1 rounded">Recovered</span>
+          ) : (
+            <span className="bg-amber-50 text-amber-700 px-2 py-1 rounded">Follow-up needed</span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+

@@ -3,44 +3,97 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
-enum SeverityLevel {
-  SELF_CARE
-  PHARMACY
-  CLINIC
-  HOSPITAL
-  EMERGENCY
+// NextAuth Required Models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
 }
 
-enum OtcStatus {
-  FULL_OTC
-  PHARMACY_ONLY
-  PRESCRIPTION_ONLY
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-enum DoseRule {
-  STANDARD_OTC
-  REDUCED_OTC
-  PRESCRIBED
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
 }
 
-enum ProviderType {
-  PHARMACY
-  CLINIC
-  HOSPITAL
-}
-
+// CareCompass User Model
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                String   @id @default(cuid())
+  email             String   @unique
+  name              String?
+  image             String?
+  homeCountry       String?
+  preferredLanguage String?
+  allergies         String? // JSON stringized
+  medications       String? // JSON stringized
+  emergencyContacts String? // JSON stringized
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  sessions TravelHealthSession[]
+  accounts             Account[]
+  sessions             Session[]
+  travelHealthSessions TravelHealthSession[]
+  healthPassport       HealthPassport?
+  healthDocuments      HealthDocument[]
+}
+
+model HealthPassport {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  bloodGroup         String?
+  allergies          String? // JSON stringized
+  currentMedications String? // JSON stringized
+  chronicConditions  String? // JSON stringized
+  vaccinations       String? // JSON stringized
+  emergencyContacts  String? // JSON stringized
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model HealthDocument {
+  id                String   @id @default(cuid())
+  userId            String
+  type              String // DIAGNOSIS_REPORT, LAB_RESULT, DISCHARGE_SUMMARY, PRESCRIPTION, VACCINATION_RECORD, OTHER
+  title             String
+  sourceCountry     String?
+  originalLanguage  String?
+  fileUrl           String
+  extractedText     String?
+  translatedText    String?
+  isSharedInSession Boolean  @default(false)
+  uploadedAt        DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
 }
 
 model Country {
@@ -63,64 +116,97 @@ model ActiveIngredient {
 }
 
 model Brand {
-  id                 String           @id @default(cuid())
+  id                 String @id @default(cuid())
   name               String
   countryId          String
   activeIngredientId String
-  otcStatus          OtcStatus        @default(FULL_OTC)
-  doseRule           DoseRule         @default(STANDARD_OTC)
+  otcStatus          String @default("FULL_OTC") // FULL_OTC, PHARMACY_ONLY, PRESCRIPTION_ONLY
+  doseRule           String @default("STANDARD_OTC") // STANDARD_OTC, REDUCED_OTC, PRESCRIBED
 
-  country            Country          @relation(fields: [countryId], references: [id])
-  activeIngredient   ActiveIngredient @relation(fields: [activeIngredientId], references: [id])
-  medicationEdges    MedicationEdge[]
+  country          Country          @relation(fields: [countryId], references: [id])
+  activeIngredient ActiveIngredient @relation(fields: [activeIngredientId], references: [id])
+  medicationEdges  MedicationEdge[]
 
   @@unique([name, countryId])
 }
 
 model MedicationEdge {
-  id                 String           @id @default(cuid())
+  id                 String  @id @default(cuid())
   activeIngredientId String
   countryId          String
   brandId            String
   notes              String?
 
-  activeIngredient   ActiveIngredient @relation(fields: [activeIngredientId], references: [id])
-  country            Country          @relation(fields: [countryId], references: [id])
-  brand              Brand            @relation(fields: [brandId], references: [id])
+  activeIngredient ActiveIngredient @relation(fields: [activeIngredientId], references: [id])
+  country          Country          @relation(fields: [countryId], references: [id])
+  brand            Brand            @relation(fields: [brandId], references: [id])
 
   @@unique([activeIngredientId, countryId, brandId])
 }
 
 model Provider {
-  id         String       @id @default(cuid())
+  id         String @id @default(cuid())
   name       String
-  type       ProviderType
+  type       String // PHARMACY, CLINIC, HOSPITAL
   address    String
   lat        Float
   lng        Float
   countryId  String
   externalId String?
 
-  country     Country      @relation(fields: [countryId], references: [id])
+  country Country @relation(fields: [countryId], references: [id])
 }
 
 model TravelHealthSession {
-  id                String        @id @default(cuid())
-  userId            String?
-  location          String?
-  countryId         String?
-  symptoms          String[]
-  duration          String?
-  allergies         String[]
-  currentMeds       String[]
-  severity          SeverityLevel?
-  medRecs           Json?
-  providerRecs      Json?
-  interpreterContext String?
-  outcome           Json?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  id                           String             @id @default(cuid())
+  caseId                       String             @unique
+  userId                       String?
+  location                     String?
+  countryId                    String?
+  lat                          Float?
+  lng                          Float?
+  symptoms                     String // JSON stringized string[]
+  duration                     String?
+  allergies                    String // JSON stringized string[]
+  currentMeds                  String // JSON stringized string[]
+  severity                     String? // SELF_CARE, PHARMACY, CLINIC, HOSPITAL, EMERGENCY
+  medRecs                      String? // JSON stringized
+  providerRecs                 String? // JSON stringized
+  interpreterContext           String?
+  interpreterContextTranslated String?
+  includedPassport             Boolean            @default(false)
+  includedDocuments            String? // JSON stringized
+  outcome                      String? // JSON stringized
+  createdAt                    DateTime           @default(now())
+  updatedAt                    DateTime           @updatedAt
 
-  user    User?    @relation(fields: [userId], references: [id])
-  country Country? @relation(fields: [countryId], references: [id])
+  user              User?              @relation(fields: [userId], references: [id])
+  country           Country?           @relation(fields: [countryId], references: [id])
+  assistanceRequest AssistanceRequest?
+  messages          Message[]
+}
+
+model AssistanceRequest {
+  id         String   @id @default(cuid())
+  sessionId  String   @unique
+  status     String   @default("PENDING") // PENDING, ASSIGNED, ACTIVE, CLOSED
+  assignedTo String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  session  TravelHealthSession @relation(fields: [sessionId], references: [id])
+  messages Message[]
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  sessionId  String
+  senderId   String?
+  senderType String // "TRAVELER" | "ASSISTANT" | "SYSTEM"
+  content    String
+  createdAt  DateTime @default(now())
+
+  session             TravelHealthSession @relation(fields: [sessionId], references: [id])
+  AssistanceRequest   AssistanceRequest?  @relation(fields: [assistanceRequestId], references: [id])
+  assistanceRequestId String?
 }

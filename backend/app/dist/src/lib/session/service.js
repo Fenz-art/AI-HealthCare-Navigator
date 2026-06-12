@@ -1,46 +1,44 @@
 import { prisma } from '@/lib/db';
-import { determineSeverity } from '@/lib/severity/engine';
-import { findLocalEquivalents } from '@/lib/medications/repository';
-import { findNearbyProviders } from '@/lib/providers/geoapify';
-import { buildInterpreterContext } from '@/lib/interpreter/builder';
+import { getTargetLanguage } from '@/lib/interpreter/translator';
+import { generateCaseId } from '@/lib/session/case-id';
 export async function createTravelHealthSession(input) {
-    const severity = await determineSeverity(input.symptoms, input.duration ?? 'Unknown', input.allergies ?? [], input.currentMeds ?? []);
-    const medRecs = input.activeIngredient && input.countryCode
-        ? await findLocalEquivalents(input.activeIngredient, input.countryCode)
-        : [];
-    const providerRecs = input.lat != null && input.lng != null && input.providerType
-        ? await findNearbyProviders(input.lat, input.lng, input.providerType)
-        : [];
-    const createData = {
+    const data = {
+        caseId: generateCaseId(),
         symptoms: input.symptoms,
         duration: input.duration,
         allergies: input.allergies ?? [],
         currentMeds: input.currentMeds ?? [],
-        severity: severity.severity,
-        medRecs,
-        providerRecs,
-        interpreterContext: ''
+        includedPassport: input.includedPassport ?? false,
+        includedDocuments: input.includedDocuments && input.includedDocuments.length > 0
+            ? input.includedDocuments
+            : undefined,
+        lat: input.lat,
+        lng: input.lng,
     };
     if (input.userId) {
-        createData.userId = input.userId;
+        data.userId = input.userId;
     }
     if (input.location) {
-        createData.location = input.location;
+        data.location = input.location;
     }
     if (input.countryCode) {
-        createData.country = { connect: { code: input.countryCode } };
+        data.country = { connect: { code: input.countryCode.toUpperCase() } };
     }
-    const session = await prisma.travelHealthSession.create({
-        data: createData
+    return prisma.travelHealthSession.create({ data });
+}
+export async function getTravelHealthSession(sessionId) {
+    const session = await prisma.travelHealthSession.findUnique({
+        where: { id: sessionId },
+        include: { country: true }
     });
-    const interpreterContext = buildInterpreterContext({
+    if (!session) {
+        return null;
+    }
+    const countryCode = session.country?.code ?? null;
+    return {
         ...session,
-        medRecs,
-        providerRecs
-    });
-    return prisma.travelHealthSession.update({
-        where: { id: session.id },
-        data: { interpreterContext }
-    });
+        countryCode,
+        targetLanguage: countryCode ? getTargetLanguage(countryCode) : 'English'
+    };
 }
 //# sourceMappingURL=service.js.map
