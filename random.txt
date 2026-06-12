@@ -1,0 +1,20 @@
+Notes
+@prisma/client was generated successfully after fixing schema relations.
+The backend builds cleanly with npm run build.
+The service exposes core flows:
+Severity routing
+Medication equivalence lookup
+Provider discovery
+Interpreter context generation
+Outcome recording
+Session creation
+Next steps
+To run locally:
+
+cd backend/app
+npm install
+Set up DATABASE_URL, GEMINI_API_KEY, and GEOAPIFY_API_KEY
+npx prisma generate
+npx prisma db push
+npm run prisma:seed
+npm run dev
