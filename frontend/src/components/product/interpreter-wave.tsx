@@ -29,7 +29,7 @@ export function InterpreterWave({ active = false }: InterpreterWaveProps) {
   return (
     <div className="relative flex h-16 items-end justify-center gap-[3px]" aria-hidden>
       <div
-        className="pointer-events-none absolute inset-x-0 top-1/2 h-px bg-gradient-to-r from-transparent via-[var(--cc-pharmacy)]/30 to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-1/2 h-px bg-gradient-to-r from-transparent via-[var(--lavender)]/30 to-transparent"
         style={{ opacity: active ? 1 : 0.3 }}
       />
       {Array.from({ length: BAR_COUNT }).map((_, i) => (
@@ -64,8 +64,8 @@ function WaveBar({ index, active }: { index: number; active: boolean }) {
       style={{
         height,
         background: active
-          ? `linear-gradient(to top, rgba(59,130,246,0.4), rgba(147,197,253,0.9))`
-          : "rgba(59,130,246,0.25)",
+          ? `linear-gradient(to top, rgba(94,106,210,0.5), rgba(130,143,255,0.95))`
+          : "rgba(94,106,210,0.2)",
       }}
     />
   );

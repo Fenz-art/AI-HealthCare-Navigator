@@ -29,7 +29,7 @@ const FAQ = [
 
 export function FaqSection() {
   return (
-    <section className="border-t mk-hairline py-20 sm:py-28">
+    <section className="border-t mk-hairline bg-[var(--mk-bg)] py-20 sm:py-28">
       <div className="mx-auto max-w-3xl px-4 sm:px-6">
         <p className="text-sm text-[var(--mk-text-tertiary)]">Frequently asked.</p>
         <h2 className="mk-headline mt-3">What travelers ask before they trust us.</h2>

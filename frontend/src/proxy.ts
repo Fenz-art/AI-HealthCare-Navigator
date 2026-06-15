@@ -1,23 +1,29 @@
 import { auth } from "@/auth";
-import createMiddleware from 'next-intl/middleware';
+import createMiddleware from "next-intl/middleware";
+
+const LOCALES = ["en", "es", "fr", "de", "ja", "zh", "hi", "ar", "pt"] as const;
 
 const intlMiddleware = createMiddleware({
-  locales: ['en', 'es', 'fr', 'de', 'ja', 'zh', 'hi', 'ar', 'pt'],
-  defaultLocale: 'en',
-  localePrefix: 'always',
+  locales: LOCALES,
+  defaultLocale: "en",
+  localePrefix: "always",
 });
 
 export default auth((req) => {
-  const isAuth = !!req.auth;
   const { pathname } = req.nextUrl;
 
-  // Parse locale and check if target route is under /app
-  const hasLocale = pathname.match(/^\/(en|es|fr|de|ja|zh|hi|ar|pt)(\/|$)/);
-  const pathWithoutLocale = hasLocale ? pathname.replace(/^\/[a-z]{2}/, '') : pathname;
+  // Strip locale prefix to get the bare path
+  const localePattern = /^\/(en|es|fr|de|ja|zh|hi|ar|pt)(\/|$)/;
+  const match = pathname.match(localePattern);
+  const bare = match ? pathname.slice(match[0].length - (match[2] === "/" ? 1 : 0)) : pathname;
 
-  if (pathWithoutLocale.startsWith('/app') && !isAuth) {
-    const locale = hasLocale ? pathname.split('/')[1] : 'en';
+  // Only protect /app/* routes — everything else (marketing, login, api) is public
+  const isProtected = bare.startsWith("/app");
+
+  if (isProtected && !req.auth) {
+    const locale = match ? match[1] : "en";
     const loginUrl = new URL(`/${locale}/login`, req.nextUrl.origin);
+    loginUrl.searchParams.set("callbackUrl", req.nextUrl.pathname);
     return Response.redirect(loginUrl);
   }
 
@@ -25,8 +31,6 @@ export default auth((req) => {
 });
 
 export const config = {
-  // Match all paths except Next.js internals, static files, and API routes
-  matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)',
-  ],
+  // Skip api routes, Next.js internals, and static files
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)" ],
 };

@@ -1,4 +1,3 @@
-@import url("https://api.fontshare.com/v2/css?f[]=satoshi@900,700,500,400&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -54,72 +53,56 @@
 }
 
 :root {
-  /* Elite dark system */
-  --cc-bg: #06070a;
-  --cc-surface: #0e1015;
-  --cc-elevated: #161a22;
-  --cc-text: #f7f8fa;
-  --cc-text-secondary: #9ca3af;
-  --cc-border: rgba(255, 255, 255, 0.06);
-  --cc-success: #52c41a;
-  --cc-warning: #f59e0b;
-  --cc-emergency: #ff4d4f;
-  --cc-pharmacy: #3b82f6;
-  --cc-clinic: #8b5cf6;
-  --cc-hospital: #ec4899;
+  /* ── All design tokens now live in the NATURAL SPRINT block below ── */
 
-  /* Legacy compass aliases */
-  --compass-base: var(--cc-bg);
-  --compass-ocean: #f7f8fa;
-  --compass-teal: #3b82f6;
-  --compass-success: var(--cc-success);
-  --compass-emergency: var(--cc-emergency);
+  --font-display: var(--font-sans), "Inter", system-ui, sans-serif;
 
-  --font-display: "Satoshi", var(--font-sans), system-ui, sans-serif;
+  /* ShadCN semantic aliases */
+  --background: var(--canvas);
+  --foreground: var(--ink);
+  --card: var(--surface-1);
+  --card-foreground: var(--ink);
+  --popover: var(--surface-2);
+  --popover-foreground: var(--ink);
+  --primary: var(--lavender);
+  --primary-foreground: var(--inverse-ink);
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--ink);
+  --muted: var(--surface-2);
+  --muted-foreground: var(--ink-subtle);
+  --accent: var(--lavender-muted);
+  --accent-foreground: var(--lavender);
+  --destructive: var(--semantic-red);
+  --border: var(--hairline);
+  --input: var(--surface-2);
+  --ring: var(--lavender-ring);
+  --radius: 0.5rem;
 
-  --background: var(--cc-bg);
-  --foreground: var(--cc-text);
-  --card: var(--cc-surface);
-  --card-foreground: var(--cc-text);
-  --popover: var(--cc-elevated);
-  --popover-foreground: var(--cc-text);
-  --primary: #f7f8fa;
-  --primary-foreground: var(--cc-bg);
-  --secondary: var(--cc-elevated);
-  --secondary-foreground: var(--cc-text);
-  --muted: var(--cc-elevated);
-  --muted-foreground: var(--cc-text-secondary);
-  --accent: rgba(59, 130, 246, 0.12);
-  --accent-foreground: #93c5fd;
-  --destructive: var(--cc-emergency);
-  --border: var(--cc-border);
-  --input: var(--cc-elevated);
-  --ring: rgba(59, 130, 246, 0.4);
-  --radius: 0.625rem;
-  --sidebar: var(--cc-surface);
-  --sidebar-foreground: var(--cc-text);
-  --sidebar-primary: #3b82f6;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: var(--cc-elevated);
-  --sidebar-accent-foreground: var(--cc-text);
-  --sidebar-border: var(--cc-border);
-  --sidebar-ring: rgba(59, 130, 246, 0.4);
+  /* Sidebar */
+  --sidebar: var(--surface-1);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--lavender);
+  --sidebar-primary-foreground: var(--inverse-ink);
+  --sidebar-accent: var(--surface-2);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--hairline);
+  --sidebar-ring: var(--lavender-ring);
 
-  /* Marketing (Tsenta-inspired light canvas) */
-  --mk-bg: #fafaf8;
-  --mk-surface: #ffffff;
-  --mk-elevated: #f4f4f1;
-  --mk-text: #0a0a0a;
-  --mk-text-secondary: #6b6b6b;
-  --mk-text-tertiary: #a3a3a3;
-  --mk-border: rgba(0, 0, 0, 0.08);
-  --mk-border-strong: rgba(0, 0, 0, 0.12);
-  --mk-accent: #c45c26;
-  --mk-accent-muted: rgba(196, 92, 38, 0.12);
-  --mk-success: #1a7f4e;
-  --mk-success-muted: rgba(26, 127, 78, 0.1);
-  --mk-danger: #c0392b;
-  --mk-danger-muted: rgba(192, 57, 43, 0.08);
+  /* Marketing — same Linear canvas as app (one operating system) */
+  --mk-bg: var(--canvas);
+  --mk-surface: var(--surface-1);
+  --mk-elevated: var(--surface-2);
+  --mk-text: var(--ink);
+  --mk-text-secondary: var(--ink-muted);
+  --mk-text-tertiary: var(--ink-subtle);
+  --mk-border: var(--hairline);
+  --mk-border-strong: var(--hairline-strong);
+  --mk-accent: var(--lavender);
+  --mk-accent-muted: var(--lavender-muted);
+  --mk-success: var(--semantic-success);
+  --mk-success-muted: rgba(39, 166, 68, 0.12);
+  --mk-danger: var(--semantic-red);
+  --mk-danger-muted: rgba(255, 77, 79, 0.1);
 }
 
 @layer base {
@@ -150,103 +133,207 @@
   }
 
   .cc-surface {
-    @apply rounded-xl border bg-[var(--cc-surface)];
-    border-color: var(--cc-border);
+    @apply rounded-lg border bg-[var(--surface-1)];
+    border-color: var(--hairline);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
   }
   .cc-elevated {
-    @apply rounded-xl border bg-[var(--cc-elevated)];
-    border-color: var(--cc-border);
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+    @apply rounded-lg border bg-[var(--surface-2)];
+    border-color: var(--hairline);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
   .cc-panel {
-    @apply rounded-2xl border bg-[var(--cc-surface)] p-5;
-    border-color: var(--cc-border);
+    @apply rounded-lg border bg-[var(--surface-1)] p-5;
+    border-color: var(--hairline);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+  /* NATURAL SPRINT: lifted-panel — the pixel-rendered top edge. No drop-shadows. */
+  .lifted-panel {
+    border: 1px solid var(--hairline);
+    border-top-color: rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
   }
   .cc-glow {
-    box-shadow: 0 0 0 1px var(--cc-border), 0 8px 40px rgba(0, 0, 0, 0.45);
+    box-shadow: 0 0 0 1px var(--hairline), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+  .cc-glow-accent {
+    box-shadow: 0 0 0 1px rgba(94, 106, 210, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  /* NATURAL SPRINT: Focus ring — lavender, no opacity clip */
+  .focus-ring:focus-visible {
+    outline: 2px solid var(--lavender-focus);
+    outline-offset: 2px;
   }
 
   .btn-primary {
-    @apply inline-flex h-11 items-center justify-center rounded-full bg-[var(--cc-text)] px-6 text-sm font-medium text-[var(--cc-bg)] transition-opacity duration-150 hover:opacity-90;
+    @apply inline-flex h-9 items-center justify-center rounded-md bg-[var(--lavender)] px-4 text-sm font-medium text-[var(--inverse-ink)] transition-colors duration-150 hover:bg-[var(--lavender-hover)] active:scale-[0.97];
   }
   .btn-secondary {
-    @apply inline-flex h-11 items-center justify-center rounded-full border px-6 text-sm font-medium text-[var(--cc-text)] transition-colors duration-150;
-    border-color: var(--cc-border);
-    background: transparent;
+    @apply inline-flex h-9 items-center justify-center rounded-md border px-4 text-sm font-medium transition-colors duration-150;
+    border-color: var(--hairline);
+    background: var(--surface-2);
+    color: var(--ink-muted);
   }
   .btn-secondary:hover {
-    background: var(--cc-elevated);
+    background: var(--surface-3);
+    border-color: var(--hairline-strong);
+    color: var(--ink);
+  }
+  .btn-accent {
+    @apply inline-flex h-9 items-center justify-center rounded-md px-4 text-sm font-medium transition-colors duration-150;
+    background: var(--lavender-muted);
+    color: var(--lavender-hover);
+    border: 1px solid rgba(94, 106, 210, 0.2);
+  }
+  .btn-accent:hover {
+    background: rgba(94, 106, 210, 0.2);
   }
 
   .hairline {
-    border-color: var(--cc-border);
+    border-color: var(--hairline);
+  }
+
+  /* ── Elastic Tabs ── */
+  .elastic-tabs {
+    display: flex;
+    position: relative;
+    background: var(--cc-surface);
+    padding: 4px;
+    border-radius: 99px;
+    width: fit-content;
+  }
+  .elastic-tabs button {
+    position: relative;
+    z-index: 2;
+    background: none;
+    border: none;
+    padding: 10px 20px;
+    color: var(--cc-fg-muted);
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: color 0.3s ease;
+    white-space: nowrap;
+  }
+  .elastic-tabs button.active {
+    color: var(--cc-void);
+  }
+  .elastic-glider {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    background: var(--cc-fg-primary);
+    border-radius: 99px;
+    z-index: 1;
+    transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1), width 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  /* ── Ambient Glow Utilities ── */
+  .ambient-glow {
+    position: relative;
+  }
+  .ambient-glow::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    background: radial-gradient(ellipse at 50% 0%, rgba(94, 106, 210, 0.07), transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Tactile Interactions ── */
+  .tactile {
+    transition: transform 0.15s ease, box-shadow 0.2s ease;
+  }
+  .tactile:hover {
+    transform: scale(0.985);
+  }
+  .tactile:active {
+    transform: scale(0.96);
   }
 
   /* ── Marketing theme utilities ── */
   .theme-marketing {
-    --background: var(--mk-bg);
-    --foreground: var(--mk-text);
-    --cc-bg: var(--mk-bg);
-    --cc-surface: var(--mk-surface);
-    --cc-elevated: var(--mk-elevated);
-    --cc-text: var(--mk-text);
-    --cc-text-secondary: var(--mk-text-secondary);
-    --cc-border: var(--mk-border);
-    color: var(--mk-text);
-    background: var(--mk-bg);
+    --background: var(--canvas);
+    --foreground: var(--ink);
+    color: var(--ink);
+    background: var(--canvas);
   }
 
   .mk-label {
-    @apply text-[11px] font-semibold uppercase tracking-[0.14em];
-    color: var(--mk-accent);
+    @apply text-[13px] font-medium;
+    letter-spacing: 0.4px;
+    color: var(--ink-subtle);
   }
 
   .mk-headline {
     font-family: var(--font-display);
-    @apply text-4xl font-bold leading-[1.08] tracking-[-0.03em] sm:text-5xl lg:text-[3.25rem];
-    color: var(--mk-text);
+    font-weight: 600;
+    letter-spacing: -1.8px;
+    line-height: 1.1;
+    @apply text-[2.5rem] sm:text-[3.5rem];
+    color: var(--ink);
+  }
+
+  .mk-display-xl {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -3px;
+    line-height: 1.05;
+    @apply text-[2.75rem] sm:text-[4rem] lg:text-[5rem];
+    color: var(--ink);
   }
 
   .mk-subhead {
-    @apply text-lg leading-relaxed sm:text-xl;
-    color: var(--mk-text-secondary);
+    @apply text-base leading-relaxed sm:text-lg;
+    letter-spacing: -0.1px;
+    color: var(--ink-muted);
   }
 
   .mk-demo-card {
-    @apply overflow-hidden rounded-2xl border bg-[var(--mk-surface)] sm:rounded-3xl;
-    border-color: var(--mk-border-strong);
-    box-shadow:
-      0 0 0 1px rgba(0, 0, 0, 0.02),
-      0 24px 80px rgba(0, 0, 0, 0.06);
+    @apply overflow-hidden rounded-xl border bg-[var(--surface-1)];
+    border-color: var(--hairline);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
   }
 
   .mk-demo-header {
-    @apply border-b px-5 py-4 sm:px-7 sm:py-5;
-    border-color: var(--mk-border);
+    @apply border-b px-6 py-5 sm:px-8;
+    border-color: var(--hairline);
   }
 
   .mk-demo-body {
-    @apply px-5 py-5 sm:px-7 sm:py-6;
+    @apply px-6 py-6 sm:px-8 sm:py-7;
   }
 
   .mk-btn-primary {
-    @apply inline-flex h-11 items-center justify-center rounded-full px-6 text-sm font-medium transition-all duration-200;
-    background: var(--mk-elevated);
-    color: var(--mk-text-secondary);
+    @apply inline-flex h-9 items-center justify-center rounded-md px-3.5 text-sm font-medium transition-colors duration-150;
+    background: var(--lavender);
+    color: var(--inverse-ink);
   }
   .mk-btn-primary:hover {
-    background: #ebebea;
-    color: var(--mk-text);
+    background: var(--lavender-hover);
   }
 
   .mk-btn-outline {
-    @apply inline-flex h-11 items-center justify-center rounded-full border px-6 text-sm font-medium transition-colors duration-200;
-    border-color: var(--mk-border-strong);
-    color: var(--mk-text);
-    background: var(--mk-surface);
+    @apply inline-flex h-9 items-center justify-center rounded-md border px-3.5 text-sm font-medium transition-colors duration-150;
+    border-color: var(--hairline);
+    color: var(--ink);
+    background: var(--surface-1);
   }
   .mk-btn-outline:hover {
-    background: var(--mk-elevated);
+    background: var(--surface-2);
+    border-color: var(--hairline-strong);
+  }
+
+  .mk-btn-inverse {
+    @apply inline-flex h-9 items-center justify-center rounded-md px-3.5 text-sm font-medium transition-colors duration-150;
+    background: var(--inverse-canvas);
+    color: var(--inverse-ink);
+  }
+  .mk-btn-inverse:hover {
+    background: #e8e8e8;
   }
 
   .mk-hairline {
@@ -308,5 +395,175 @@
 
   .animate-accordion-up {
     animation: accordion-up 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* ── Provider Pulse ── */
+  @keyframes provider-pulse {
+    0%, 100% {
+      box-shadow: 0 0 0 0 rgba(94, 106, 210, 0.4);
+    }
+    50% {
+      box-shadow: 0 0 0 8px rgba(94, 106, 210, 0);
+    }
+  }
+
+  .animate-provider-pulse {
+    animation: provider-pulse 2s ease-in-out infinite;
+  }
+
+  /* ── Ambient Float ── */
+  @keyframes ambient-float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-6px); }
+  }
+
+  .animate-float {
+    animation: ambient-float 6s ease-in-out infinite;
+  }
+
+  /* ── Subtle Glow Pulse ── */
+  @keyframes glow-pulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.6; }
+  }
+
+  .animate-glow-pulse {
+    animation: glow-pulse 4s ease-in-out infinite;
+  }
+
+  /* ── Fade In Up ── */
+  @keyframes fade-in-up {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in-up {
+    animation: fade-in-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  /* ── Stagger Delay Utilities ── */
+  .stagger-1 { animation-delay: 0.06s; }
+  .stagger-2 { animation-delay: 0.12s; }
+  .stagger-3 { animation-delay: 0.18s; }
+  .stagger-4 { animation-delay: 0.24s; }
+  .stagger-5 { animation-delay: 0.30s; }
+  .stagger-6 { animation-delay: 0.36s; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   NATURAL SPRINT — Linear Design Bible Tokens
+   Exact hex values from the spec. No blurs, no drop-shadows.
+   Elevation is purely the surface ladder + hairlines + pixel-edge highlight.
+   ───────────────────────────────────────────────────────────────────────────── */
+:root {
+  /* Canvas & 4-step surface ladder — exact Linear hex */
+  --canvas:    #010102;
+  --surface-1: #0f1011;
+  --surface-2: #141516;
+  --surface-3: #18191a;
+  --surface-4: #23252a;
+
+  /* Hairlines — replace every blur/drop-shadow with these */
+  --hairline:          #23252a;
+  --hairline-strong:   #33363d;
+  --hairline-tertiary: #3a3d45;
+
+  /* Ink hierarchy */
+  --ink:          #f7f8f8;
+  --ink-muted:    #d0d6e0;
+  --ink-subtle:   #8a8f98;
+  --ink-tertiary: #62666d;
+
+  /* Single chromatic accent — Lavender-Blue */
+  --lavender:       #5e6ad2;
+  --lavender-hover: #828fff;
+  --lavender-focus: #5e69d1;
+  --lavender-muted: rgba(94, 106, 210, 0.12);
+  --lavender-ring:  rgba(94, 106, 210, 0.35);
+
+  /* Semantic colours */
+  --semantic-success: #27a644;
+  --semantic-red:     #ff4d4f;
+  --semantic-blue:    #3b82f6;
+  --semantic-purple:  #8b5cf6;
+
+  /* Inverse (for text on lavender buttons) */
+  --inverse-canvas: #ffffff;
+  --inverse-ink:    #010102;
+
+  /* ── Keep legacy cc- aliases pointing at new ladder ── */
+  --cc-void:          var(--canvas);
+  --cc-surface-deep:  var(--surface-1);
+  --cc-surface-active:var(--surface-3);
+  --cc-border-subtle: var(--hairline-strong);
+  --cc-fg-primary:    var(--ink);
+  --cc-fg-muted:      var(--ink-subtle);
+  --cc-accent:        var(--lavender);
+  --cc-accent-muted:  var(--lavender-muted);
+  --cc-border:        var(--hairline);
+  --cc-bg:            var(--canvas);
+  --cc-surface:       var(--surface-1);
+  --cc-elevated:      var(--surface-2);
+  --cc-text:          var(--ink);
+  --cc-text-secondary:var(--ink-subtle);
+  --cc-success:       var(--semantic-success);
+  --cc-emergency:     var(--semantic-red);
+  --cc-pharmacy:      var(--semantic-blue);
+  --cc-clinic:        var(--semantic-purple);
+  --cc-hospital:      var(--semantic-red);
+  --cc-warning:       #e58a51;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--hairline-strong); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--hairline-tertiary); }
+
+@layer utilities {
+  /* Status badges */
+  .status-badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px];
+    background: var(--surface-2);
+    color: var(--ink-subtle);
+  }
+  .status-badge-success {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium;
+    background: rgba(82, 196, 26, 0.1);
+    color: var(--semantic-success);
+  }
+  .status-badge-emergency {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium;
+    background: rgba(255, 77, 79, 0.1);
+    color: var(--semantic-red);
+  }
+
+  /* Top-edge highlight for cards — NATURAL SPRINT */
+  .top-edge-highlight {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  /* Linear card variants — use surface ladder, no drop-shadows */
+  .cc-card {
+    @apply rounded-md border;
+    background: var(--surface-1);
+    border-color: var(--hairline);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+  .cc-card-hover {
+    @apply rounded-md border transition-all duration-150;
+    background: var(--surface-1);
+    border-color: var(--hairline);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+  .cc-card-hover:hover {
+    background: var(--surface-2);
+    border-color: var(--hairline-strong);
   }
 }

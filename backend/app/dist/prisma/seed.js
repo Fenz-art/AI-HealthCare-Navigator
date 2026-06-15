@@ -1,330 +1,375 @@
+/**
+ * CareCompass seed — fast bulk version
+ * Uses raw SQL INSERT … ON CONFLICT DO NOTHING so the whole
+ * dataset lands in 3 queries instead of 700+ individual upserts.
+ */
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
-const mappings = [
-    // Paracetamol
-    { ingredient: 'Paracetamol', country: 'US', brand: 'Tylenol', status: 'FULL_OTC' },
-    { ingredient: 'Paracetamol', country: 'IN', brand: 'Crocin', status: 'FULL_OTC' },
-    { ingredient: 'Paracetamol', country: 'JP', brand: 'Bufferin Luna', status: 'FULL_OTC' },
-    { ingredient: 'Paracetamol', country: 'GB', brand: 'Panadol', status: 'FULL_OTC' },
-    { ingredient: 'Paracetamol', country: 'DE', brand: 'Ben-u-ron', status: 'FULL_OTC' },
-    { ingredient: 'Paracetamol', country: 'FR', brand: 'Doliprane', status: 'FULL_OTC' },
-    { ingredient: 'Paracetamol', country: 'BR', brand: 'Tylenol', status: 'FULL_OTC' },
-    { ingredient: 'Paracetamol', country: 'IT', brand: 'Tachipirina', status: 'FULL_OTC' },
-    { ingredient: 'Paracetamol', country: 'ES', brand: 'Gelocatil', status: 'FULL_OTC' },
-    { ingredient: 'Paracetamol', country: 'MX', brand: 'Tempra', status: 'FULL_OTC' },
-    { ingredient: 'Paracetamol', country: 'AU', brand: 'Panadol', status: 'FULL_OTC' },
-    { ingredient: 'Paracetamol', country: 'TH', brand: 'Sara', status: 'FULL_OTC' },
-    { ingredient: 'Paracetamol', country: 'VN', brand: 'Efferalgan', status: 'FULL_OTC' },
-    { ingredient: 'Paracetamol', country: 'KR', brand: 'Tylenol', status: 'FULL_OTC' },
-    { ingredient: 'Paracetamol', country: 'SE', brand: 'Alvedon', status: 'FULL_OTC' },
-    { ingredient: 'Paracetamol', country: 'AE', brand: 'Panadol', status: 'FULL_OTC' },
-    { ingredient: 'Paracetamol', country: 'ZA', brand: 'Panado', status: 'FULL_OTC' },
-    { ingredient: 'Paracetamol', country: 'NG', brand: 'Panadol', status: 'FULL_OTC' },
-    { ingredient: 'Paracetamol', country: 'TR', brand: 'Parol', status: 'FULL_OTC' },
-    { ingredient: 'Paracetamol', country: 'EG', brand: 'Panadol', status: 'FULL_OTC' },
-    // Ibuprofen
-    { ingredient: 'Ibuprofen', country: 'US', brand: 'Advil', status: 'FULL_OTC' },
-    { ingredient: 'Ibuprofen', country: 'IN', brand: 'Brufen', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Ibuprofen', country: 'JP', brand: 'Brufen', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Ibuprofen', country: 'GB', brand: 'Nurofen', status: 'FULL_OTC' },
-    { ingredient: 'Ibuprofen', country: 'DE', brand: 'Dolormin', status: 'FULL_OTC' },
-    { ingredient: 'Ibuprofen', country: 'FR', brand: 'Advil', status: 'FULL_OTC' },
-    { ingredient: 'Ibuprofen', country: 'BR', brand: 'Advil', status: 'FULL_OTC' },
-    { ingredient: 'Ibuprofen', country: 'IT', brand: 'Moment', status: 'FULL_OTC' },
-    { ingredient: 'Ibuprofen', country: 'ES', brand: 'Neobrufen', status: 'FULL_OTC' },
-    { ingredient: 'Ibuprofen', country: 'MX', brand: 'Advil', status: 'FULL_OTC' },
-    { ingredient: 'Ibuprofen', country: 'AU', brand: 'Nurofen', status: 'FULL_OTC' },
-    { ingredient: 'Ibuprofen', country: 'TH', brand: 'Brufen', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Ibuprofen', country: 'VN', brand: 'Brufen', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Ibuprofen', country: 'KR', brand: 'Brufen', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Ibuprofen', country: 'SE', brand: 'Ipren', status: 'FULL_OTC' },
-    { ingredient: 'Ibuprofen', country: 'AE', brand: 'Brufen', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Ibuprofen', country: 'ZA', brand: 'Myprodol', status: 'FULL_OTC' },
-    { ingredient: 'Ibuprofen', country: 'TR', brand: 'Brufen', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Ibuprofen', country: 'EG', brand: 'Brufen', status: 'PHARMACY_ONLY' },
-    // Loperamide
-    { ingredient: 'Loperamide', country: 'US', brand: 'Imodium A-D', status: 'FULL_OTC' },
-    { ingredient: 'Loperamide', country: 'IN', brand: 'Eldoper', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Loperamide', country: 'JP', brand: 'Imodium', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Loperamide', country: 'GB', brand: 'Imodium', status: 'FULL_OTC' },
-    { ingredient: 'Loperamide', country: 'DE', brand: 'Imodium', status: 'FULL_OTC' },
-    { ingredient: 'Loperamide', country: 'FR', brand: 'Imodium', status: 'FULL_OTC' },
-    { ingredient: 'Loperamide', country: 'BR', brand: 'Imosec', status: 'FULL_OTC' },
-    { ingredient: 'Loperamide', country: 'IT', brand: 'Imodium', status: 'FULL_OTC' },
-    { ingredient: 'Loperamide', country: 'ES', brand: 'Fortasec', status: 'FULL_OTC' },
-    { ingredient: 'Loperamide', country: 'MX', brand: 'Diarstop', status: 'FULL_OTC' },
-    { ingredient: 'Loperamide', country: 'AU', brand: 'Gastro-Stop', status: 'FULL_OTC' },
-    { ingredient: 'Loperamide', country: 'TH', brand: 'Imodium', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Loperamide', country: 'VN', brand: 'Imodium', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Loperamide', country: 'KR', brand: 'Imodium', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Loperamide', country: 'SE', brand: 'Imodium', status: 'FULL_OTC' },
-    { ingredient: 'Loperamide', country: 'AE', brand: 'Imodium', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Loperamide', country: 'TR', brand: 'Imodium', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Loperamide', country: 'EG', brand: 'Imodium', status: 'PHARMACY_ONLY' },
-    // Cetirizine
-    { ingredient: 'Cetirizine', country: 'US', brand: 'Zyrtec', status: 'FULL_OTC' },
-    { ingredient: 'Cetirizine', country: 'IN', brand: 'Cetzine', status: 'FULL_OTC' },
-    { ingredient: 'Cetirizine', country: 'JP', brand: 'Zyrtec', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Cetirizine', country: 'GB', brand: 'Piriteze', status: 'FULL_OTC' },
-    { ingredient: 'Cetirizine', country: 'DE', brand: 'Zyrtec', status: 'FULL_OTC' },
-    { ingredient: 'Cetirizine', country: 'FR', brand: 'Zyrtec', status: 'FULL_OTC' },
-    { ingredient: 'Cetirizine', country: 'BR', brand: 'Zyrtec', status: 'FULL_OTC' },
-    { ingredient: 'Cetirizine', country: 'IT', brand: 'Zirtec', status: 'FULL_OTC' },
-    { ingredient: 'Cetirizine', country: 'ES', brand: 'Zyrtec', status: 'FULL_OTC' },
-    { ingredient: 'Cetirizine', country: 'MX', brand: 'Zyrtec', status: 'FULL_OTC' },
-    { ingredient: 'Cetirizine', country: 'AU', brand: 'Zyrtec', status: 'FULL_OTC' },
-    { ingredient: 'Cetirizine', country: 'TH', brand: 'Zyrtec', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Cetirizine', country: 'VN', brand: 'Zyrtec', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Cetirizine', country: 'KR', brand: 'Zyrtec', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Cetirizine', country: 'SE', brand: 'Zyrtec', status: 'FULL_OTC' },
-    { ingredient: 'Cetirizine', country: 'AE', brand: 'Zyrtec', status: 'FULL_OTC' },
-    { ingredient: 'Cetirizine', country: 'TR', brand: 'Zyrtec', status: 'FULL_OTC' },
-    // Omeprazole
-    { ingredient: 'Omeprazole', country: 'US', brand: 'Prilosec', status: 'FULL_OTC' },
-    { ingredient: 'Omeprazole', country: 'IN', brand: 'Omez', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Omeprazole', country: 'JP', brand: 'Omepral', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Omeprazole', country: 'GB', brand: 'Losec', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Omeprazole', country: 'DE', brand: 'Antra', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Omeprazole', country: 'FR', brand: 'Mopral', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Omeprazole', country: 'BR', brand: 'Losec', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Omeprazole', country: 'IT', brand: 'Losec', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Omeprazole', country: 'ES', brand: 'Losec', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Omeprazole', country: 'MX', brand: 'Losec', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Omeprazole', country: 'AU', brand: 'Losec', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Omeprazole', country: 'TH', brand: 'Losec', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Omeprazole', country: 'KR', brand: 'Losec', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Omeprazole', country: 'SE', brand: 'Losec', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Omeprazole', country: 'AE', brand: 'Losec', status: 'PHARMACY_ONLY' },
-    // Bismuth Subsalicylate
-    { ingredient: 'Bismuth Subsalicylate', country: 'US', brand: 'Pepto-Bismol', status: 'FULL_OTC' },
-    { ingredient: 'Bismuth Subsalicylate', country: 'GB', brand: 'Pepto-Bismol', status: 'FULL_OTC' },
-    { ingredient: 'Bismuth Subsalicylate', country: 'AU', brand: 'Pepto-Bismol', status: 'FULL_OTC' },
-    { ingredient: 'Bismuth Subsalicylate', country: 'MX', brand: 'Pepto-Bismol', status: 'FULL_OTC' },
-    // Oral Rehydration Salts
-    { ingredient: 'Oral Rehydration Salts', country: 'US', brand: 'Pedialyte', status: 'FULL_OTC' },
-    { ingredient: 'Oral Rehydration Salts', country: 'IN', brand: 'Electral', status: 'FULL_OTC' },
-    { ingredient: 'Oral Rehydration Salts', country: 'GB', brand: 'Dioralyte', status: 'FULL_OTC' },
-    { ingredient: 'Oral Rehydration Salts', country: 'JP', brand: 'OS-1', status: 'FULL_OTC' },
-    { ingredient: 'Oral Rehydration Salts', country: 'TH', brand: 'ORS', status: 'FULL_OTC' },
-    { ingredient: 'Oral Rehydration Salts', country: 'VN', brand: 'Oresol', status: 'FULL_OTC' },
-    { ingredient: 'Oral Rehydration Salts', country: 'MX', brand: 'Pedialyte', status: 'FULL_OTC' },
-    { ingredient: 'Oral Rehydration Salts', country: 'BR', brand: 'Rehidrat', status: 'FULL_OTC' },
-    { ingredient: 'Oral Rehydration Salts', country: 'EG', brand: 'Rehydra', status: 'FULL_OTC' },
-    { ingredient: 'Oral Rehydration Salts', country: 'NG', brand: 'ORS', status: 'FULL_OTC' },
-    // Dimenhydrinate
-    { ingredient: 'Dimenhydrinate', country: 'US', brand: 'Dramamine', status: 'FULL_OTC' },
-    { ingredient: 'Dimenhydrinate', country: 'IN', brand: 'Avomine', status: 'FULL_OTC' },
-    { ingredient: 'Dimenhydrinate', country: 'GB', brand: 'Travel Calm', status: 'FULL_OTC' },
-    { ingredient: 'Dimenhydrinate', country: 'JP', brand: 'Aneron', status: 'FULL_OTC' },
-    { ingredient: 'Dimenhydrinate', country: 'DE', brand: 'Vomex A', status: 'FULL_OTC' },
-    { ingredient: 'Dimenhydrinate', country: 'FR', brand: 'Nausicalm', status: 'FULL_OTC' },
-    { ingredient: 'Dimenhydrinate', country: 'AU', brand: 'Travacalm', status: 'FULL_OTC' },
-    { ingredient: 'Dimenhydrinate', country: 'TH', brand: 'Dimen', status: 'FULL_OTC' },
-    { ingredient: 'Dimenhydrinate', country: 'MX', brand: 'Dramamine', status: 'FULL_OTC' },
-    { ingredient: 'Dimenhydrinate', country: 'BR', brand: 'Dramin', status: 'FULL_OTC' },
-    // Diphenhydramine
-    { ingredient: 'Diphenhydramine', country: 'US', brand: 'Benadryl', status: 'FULL_OTC' },
-    { ingredient: 'Diphenhydramine', country: 'IN', brand: 'Benadryl', status: 'FULL_OTC' },
-    { ingredient: 'Diphenhydramine', country: 'GB', brand: 'Benadryl', status: 'FULL_OTC' },
-    { ingredient: 'Diphenhydramine', country: 'JP', brand: 'Restamin', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Diphenhydramine', country: 'AU', brand: 'Benadryl', status: 'FULL_OTC' },
-    { ingredient: 'Diphenhydramine', country: 'MX', brand: 'Benadryl', status: 'FULL_OTC' },
-    { ingredient: 'Diphenhydramine', country: 'BR', brand: 'Benadryl', status: 'FULL_OTC' },
-    { ingredient: 'Diphenhydramine', country: 'FR', brand: 'Nautamine', status: 'FULL_OTC' },
-    // Loratadine
-    { ingredient: 'Loratadine', country: 'US', brand: 'Claritin', status: 'FULL_OTC' },
-    { ingredient: 'Loratadine', country: 'IN', brand: 'Lorfast', status: 'FULL_OTC' },
-    { ingredient: 'Loratadine', country: 'GB', brand: 'Clarityn', status: 'FULL_OTC' },
-    { ingredient: 'Loratadine', country: 'JP', brand: 'Claritin', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Loratadine', country: 'DE', brand: 'Claritin', status: 'FULL_OTC' },
-    { ingredient: 'Loratadine', country: 'FR', brand: 'Clarityne', status: 'FULL_OTC' },
-    { ingredient: 'Loratadine', country: 'AU', brand: 'Claratyne', status: 'FULL_OTC' },
-    { ingredient: 'Loratadine', country: 'MX', brand: 'Claritin', status: 'FULL_OTC' },
-    { ingredient: 'Loratadine', country: 'BR', brand: 'Claritin', status: 'FULL_OTC' },
-    { ingredient: 'Loratadine', country: 'TH', brand: 'Claritin', status: 'PHARMACY_ONLY' },
-    // Diclofenac
-    { ingredient: 'Diclofenac', country: 'IN', brand: 'Voveran', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Diclofenac', country: 'JP', brand: 'Voltaren', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Diclofenac', country: 'DE', brand: 'Voltaren', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Diclofenac', country: 'GB', brand: 'Voltarol', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Diclofenac', country: 'US', brand: 'Voltaren', status: 'FULL_OTC' },
-    { ingredient: 'Diclofenac', country: 'BR', brand: 'Voltaren', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Diclofenac', country: 'MX', brand: 'Voltaren', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Diclofenac', country: 'TH', brand: 'Voltaren', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Diclofenac', country: 'TR', brand: 'Voltaren', status: 'PHARMACY_ONLY' },
-    // Naproxen
-    { ingredient: 'Naproxen', country: 'US', brand: 'Aleve', status: 'FULL_OTC' },
-    { ingredient: 'Naproxen', country: 'GB', brand: 'Feminax', status: 'FULL_OTC' },
-    { ingredient: 'Naproxen', country: 'DE', brand: 'Dolormin Extra', status: 'FULL_OTC' },
-    { ingredient: 'Naproxen', country: 'IN', brand: 'Naprosyn', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Naproxen', country: 'AU', brand: 'Naprogesic', status: 'FULL_OTC' },
-    { ingredient: 'Naproxen', country: 'MX', brand: 'Flanax', status: 'FULL_OTC' },
-    { ingredient: 'Naproxen', country: 'BR', brand: 'Flanax', status: 'FULL_OTC' },
-    { ingredient: 'Naproxen', country: 'SE', brand: 'Pronaxen', status: 'FULL_OTC' },
-    // Simethicone
-    { ingredient: 'Simethicone', country: 'US', brand: 'Gas-X', status: 'FULL_OTC' },
-    { ingredient: 'Simethicone', country: 'IN', brand: 'Digene', status: 'FULL_OTC' },
-    { ingredient: 'Simethicone', country: 'GB', brand: 'WindSetlers', status: 'FULL_OTC' },
-    { ingredient: 'Simethicone', country: 'JP', brand: 'Gaason', status: 'FULL_OTC' },
-    { ingredient: 'Simethicone', country: 'DE', brand: 'Lefax', status: 'FULL_OTC' },
-    { ingredient: 'Simethicone', country: 'FR', brand: 'Meteosim', status: 'FULL_OTC' },
-    { ingredient: 'Simethicone', country: 'AU', brand: 'De-Gas', status: 'FULL_OTC' },
-    { ingredient: 'Simethicone', country: 'MX', brand: 'Aero-OM', status: 'FULL_OTC' },
-    // Hydrocortisone
-    { ingredient: 'Hydrocortisone', country: 'US', brand: 'Cortizone-10', status: 'FULL_OTC' },
-    { ingredient: 'Hydrocortisone', country: 'GB', brand: 'HC45', status: 'FULL_OTC' },
-    { ingredient: 'Hydrocortisone', country: 'IN', brand: 'Caladryl', status: 'FULL_OTC' },
-    { ingredient: 'Hydrocortisone', country: 'AU', brand: 'Dermaid', status: 'FULL_OTC' },
-    { ingredient: 'Hydrocortisone', country: 'DE', brand: 'Hydrocutan', status: 'FULL_OTC' },
-    { ingredient: 'Hydrocortisone', country: 'FR', brand: 'Cortisedermyl', status: 'FULL_OTC' },
-    { ingredient: 'Hydrocortisone', country: 'JP', brand: 'Locoid', status: 'PHARMACY_ONLY' },
-    // Clotrimazole
-    { ingredient: 'Clotrimazole', country: 'US', brand: 'Lotrimin', status: 'FULL_OTC' },
-    { ingredient: 'Clotrimazole', country: 'GB', brand: 'Canesten', status: 'FULL_OTC' },
-    { ingredient: 'Clotrimazole', country: 'IN', brand: 'Candid', status: 'FULL_OTC' },
-    { ingredient: 'Clotrimazole', country: 'AU', brand: 'Canesten', status: 'FULL_OTC' },
-    { ingredient: 'Clotrimazole', country: 'DE', brand: 'Canesten', status: 'FULL_OTC' },
-    { ingredient: 'Clotrimazole', country: 'FR', brand: 'Canesten', status: 'FULL_OTC' },
-    { ingredient: 'Clotrimazole', country: 'MX', brand: 'Canesten', status: 'FULL_OTC' },
-    { ingredient: 'Clotrimazole', country: 'BR', brand: 'Canesten', status: 'FULL_OTC' },
-    // Guaifenesin
-    { ingredient: 'Guaifenesin', country: 'US', brand: 'Mucinex', status: 'FULL_OTC' },
-    { ingredient: 'Guaifenesin', country: 'GB', brand: 'Benylin', status: 'FULL_OTC' },
-    { ingredient: 'Guaifenesin', country: 'IN', brand: 'Alex', status: 'FULL_OTC' },
-    { ingredient: 'Guaifenesin', country: 'AU', brand: 'Robitussin', status: 'FULL_OTC' },
-    { ingredient: 'Guaifenesin', country: 'MX', brand: 'Tukol', status: 'FULL_OTC' },
-    { ingredient: 'Guaifenesin', country: 'BR', brand: 'Mucosolvan', status: 'FULL_OTC' },
-    // Dextromethorphan
-    { ingredient: 'Dextromethorphan', country: 'US', brand: 'Robitussin DM', status: 'FULL_OTC' },
-    { ingredient: 'Dextromethorphan', country: 'GB', brand: 'Benylin DM', status: 'FULL_OTC' },
-    { ingredient: 'Dextromethorphan', country: 'IN', brand: 'Benadryl DR', status: 'FULL_OTC' },
-    { ingredient: 'Dextromethorphan', country: 'AU', brand: 'Bisolvon', status: 'FULL_OTC' },
-    { ingredient: 'Dextromethorphan', country: 'MX', brand: 'Tukol DM', status: 'FULL_OTC' },
-    { ingredient: 'Dextromethorphan', country: 'BR', brand: 'Vick 44E', status: 'FULL_OTC' },
-    // Pseudoephedrine
-    { ingredient: 'Pseudoephedrine', country: 'US', brand: 'Sudafed', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Pseudoephedrine', country: 'GB', brand: 'Sudafed', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Pseudoephedrine', country: 'AU', brand: 'Sudafed', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Pseudoephedrine', country: 'IN', brand: 'Sinarest', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Pseudoephedrine', country: 'MX', brand: 'Sudafed', status: 'PHARMACY_ONLY' },
-    // Phenylephrine
-    { ingredient: 'Phenylephrine', country: 'US', brand: 'Sudafed PE', status: 'FULL_OTC' },
-    { ingredient: 'Phenylephrine', country: 'GB', brand: 'Sudafed PE', status: 'FULL_OTC' },
-    { ingredient: 'Phenylephrine', country: 'IN', brand: 'Otrivin', status: 'FULL_OTC' },
-    { ingredient: 'Phenylephrine', country: 'AU', brand: 'Demazin', status: 'FULL_OTC' },
-    { ingredient: 'Phenylephrine', country: 'MX', brand: 'Sudafed PE', status: 'FULL_OTC' },
-    // Meclizine
-    { ingredient: 'Meclizine', country: 'US', brand: 'Bonine', status: 'FULL_OTC' },
-    { ingredient: 'Meclizine', country: 'IN', brand: 'Vertin', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Meclizine', country: 'GB', brand: 'Stugeron', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Meclizine', country: 'AU', brand: 'Travacalm', status: 'FULL_OTC' },
-    // Famotidine
-    { ingredient: 'Famotidine', country: 'US', brand: 'Pepcid', status: 'FULL_OTC' },
-    { ingredient: 'Famotidine', country: 'IN', brand: 'Famocid', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Famotidine', country: 'JP', brand: 'Gaster', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Famotidine', country: 'GB', brand: 'Pepcid', status: 'FULL_OTC' },
-    { ingredient: 'Famotidine', country: 'AU', brand: 'Pepcidine', status: 'FULL_OTC' },
-    { ingredient: 'Famotidine', country: 'MX', brand: 'Pepcid', status: 'FULL_OTC' },
-    // Ketoconazole
-    { ingredient: 'Ketoconazole', country: 'US', brand: 'Nizoral', status: 'FULL_OTC' },
-    { ingredient: 'Ketoconazole', country: 'IN', brand: 'Nizral', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Ketoconazole', country: 'GB', brand: 'Nizoral', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Ketoconazole', country: 'AU', brand: 'Nizoral', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Ketoconazole', country: 'BR', brand: 'Nizoral', status: 'PHARMACY_ONLY' },
-    // Mupirocin
-    { ingredient: 'Mupirocin', country: 'US', brand: 'Bactroban', status: 'PRESCRIPTION_ONLY' },
-    { ingredient: 'Mupirocin', country: 'IN', brand: 'T-Bact', status: 'PRESCRIPTION_ONLY' },
-    { ingredient: 'Mupirocin', country: 'GB', brand: 'Bactroban', status: 'PRESCRIPTION_ONLY' },
-    { ingredient: 'Mupirocin', country: 'AU', brand: 'Bactroban', status: 'PRESCRIPTION_ONLY' },
-    // Fluticasone
-    { ingredient: 'Fluticasone', country: 'US', brand: 'Flonase', status: 'FULL_OTC' },
-    { ingredient: 'Fluticasone', country: 'GB', brand: 'Flixonase', status: 'FULL_OTC' },
-    { ingredient: 'Fluticasone', country: 'IN', brand: 'Flomist', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Fluticasone', country: 'AU', brand: 'Flixonase', status: 'FULL_OTC' },
-    { ingredient: 'Fluticasone', country: 'DE', brand: 'Avamys', status: 'PHARMACY_ONLY' },
-    { ingredient: 'Fluticasone', country: 'MX', brand: 'Flonase', status: 'FULL_OTC' }
+// ── 1. Countries ─────────────────────────────────────────────────
+const COUNTRIES = [
+    { name: 'United States', code: 'US' },
+    { name: 'India', code: 'IN' },
+    { name: 'Japan', code: 'JP' },
+    { name: 'United Kingdom', code: 'GB' },
+    { name: 'Germany', code: 'DE' },
+    { name: 'France', code: 'FR' },
+    { name: 'Brazil', code: 'BR' },
+    { name: 'Italy', code: 'IT' },
+    { name: 'Spain', code: 'ES' },
+    { name: 'Mexico', code: 'MX' },
+    { name: 'Australia', code: 'AU' },
+    { name: 'Thailand', code: 'TH' },
+    { name: 'Vietnam', code: 'VN' },
+    { name: 'South Korea', code: 'KR' },
+    { name: 'Sweden', code: 'SE' },
+    { name: 'UAE', code: 'AE' },
+    { name: 'South Africa', code: 'ZA' },
+    { name: 'Nigeria', code: 'NG' },
+    { name: 'Turkey', code: 'TR' },
+    { name: 'Egypt', code: 'EG' },
 ];
+// ── 2. Active ingredients ─────────────────────────────────────────
+const INGREDIENTS = [
+    'Paracetamol', 'Ibuprofen', 'Loperamide', 'Cetirizine', 'Omeprazole',
+    'Bismuth Subsalicylate', 'Oral Rehydration Salts', 'Dimenhydrinate',
+    'Diphenhydramine', 'Loratadine', 'Diclofenac', 'Naproxen', 'Simethicone',
+    'Hydrocortisone', 'Clotrimazole', 'Guaifenesin', 'Dextromethorphan',
+    'Pseudoephedrine', 'Phenylephrine', 'Meclizine', 'Famotidine',
+    'Ketoconazole', 'Mupirocin', 'Fluticasone',
+];
+const MAPPINGS = [
+    // Paracetamol
+    { i: 'Paracetamol', c: 'US', b: 'Tylenol', s: 'FULL_OTC' },
+    { i: 'Paracetamol', c: 'IN', b: 'Crocin', s: 'FULL_OTC' },
+    { i: 'Paracetamol', c: 'JP', b: 'Bufferin Luna', s: 'FULL_OTC' },
+    { i: 'Paracetamol', c: 'GB', b: 'Panadol', s: 'FULL_OTC' },
+    { i: 'Paracetamol', c: 'DE', b: 'Ben-u-ron', s: 'FULL_OTC' },
+    { i: 'Paracetamol', c: 'FR', b: 'Doliprane', s: 'FULL_OTC' },
+    { i: 'Paracetamol', c: 'BR', b: 'Tylenol', s: 'FULL_OTC' },
+    { i: 'Paracetamol', c: 'IT', b: 'Tachipirina', s: 'FULL_OTC' },
+    { i: 'Paracetamol', c: 'ES', b: 'Gelocatil', s: 'FULL_OTC' },
+    { i: 'Paracetamol', c: 'MX', b: 'Tempra', s: 'FULL_OTC' },
+    { i: 'Paracetamol', c: 'AU', b: 'Panadol', s: 'FULL_OTC' },
+    { i: 'Paracetamol', c: 'TH', b: 'Sara', s: 'FULL_OTC' },
+    { i: 'Paracetamol', c: 'VN', b: 'Efferalgan', s: 'FULL_OTC' },
+    { i: 'Paracetamol', c: 'KR', b: 'Tylenol', s: 'FULL_OTC' },
+    { i: 'Paracetamol', c: 'SE', b: 'Alvedon', s: 'FULL_OTC' },
+    { i: 'Paracetamol', c: 'AE', b: 'Panadol', s: 'FULL_OTC' },
+    { i: 'Paracetamol', c: 'ZA', b: 'Panado', s: 'FULL_OTC' },
+    { i: 'Paracetamol', c: 'NG', b: 'Panadol', s: 'FULL_OTC' },
+    { i: 'Paracetamol', c: 'TR', b: 'Parol', s: 'FULL_OTC' },
+    { i: 'Paracetamol', c: 'EG', b: 'Panadol', s: 'FULL_OTC' },
+    // Ibuprofen
+    { i: 'Ibuprofen', c: 'US', b: 'Advil', s: 'FULL_OTC' },
+    { i: 'Ibuprofen', c: 'IN', b: 'Brufen', s: 'PHARMACY_ONLY' },
+    { i: 'Ibuprofen', c: 'JP', b: 'Brufen', s: 'PHARMACY_ONLY' },
+    { i: 'Ibuprofen', c: 'GB', b: 'Nurofen', s: 'FULL_OTC' },
+    { i: 'Ibuprofen', c: 'DE', b: 'Dolormin', s: 'FULL_OTC' },
+    { i: 'Ibuprofen', c: 'FR', b: 'Advil', s: 'FULL_OTC' },
+    { i: 'Ibuprofen', c: 'BR', b: 'Advil', s: 'FULL_OTC' },
+    { i: 'Ibuprofen', c: 'IT', b: 'Moment', s: 'FULL_OTC' },
+    { i: 'Ibuprofen', c: 'ES', b: 'Neobrufen', s: 'FULL_OTC' },
+    { i: 'Ibuprofen', c: 'MX', b: 'Advil', s: 'FULL_OTC' },
+    { i: 'Ibuprofen', c: 'AU', b: 'Nurofen', s: 'FULL_OTC' },
+    { i: 'Ibuprofen', c: 'TH', b: 'Brufen', s: 'PHARMACY_ONLY' },
+    { i: 'Ibuprofen', c: 'VN', b: 'Brufen', s: 'PHARMACY_ONLY' },
+    { i: 'Ibuprofen', c: 'KR', b: 'Brufen', s: 'PHARMACY_ONLY' },
+    { i: 'Ibuprofen', c: 'SE', b: 'Ipren', s: 'FULL_OTC' },
+    { i: 'Ibuprofen', c: 'AE', b: 'Brufen', s: 'PHARMACY_ONLY' },
+    { i: 'Ibuprofen', c: 'ZA', b: 'Myprodol', s: 'FULL_OTC' },
+    { i: 'Ibuprofen', c: 'TR', b: 'Brufen', s: 'PHARMACY_ONLY' },
+    { i: 'Ibuprofen', c: 'EG', b: 'Brufen', s: 'PHARMACY_ONLY' },
+    // Loperamide
+    { i: 'Loperamide', c: 'US', b: 'Imodium A-D', s: 'FULL_OTC' },
+    { i: 'Loperamide', c: 'IN', b: 'Eldoper', s: 'PHARMACY_ONLY' },
+    { i: 'Loperamide', c: 'JP', b: 'Imodium', s: 'PHARMACY_ONLY' },
+    { i: 'Loperamide', c: 'GB', b: 'Imodium', s: 'FULL_OTC' },
+    { i: 'Loperamide', c: 'DE', b: 'Imodium', s: 'FULL_OTC' },
+    { i: 'Loperamide', c: 'FR', b: 'Imodium', s: 'FULL_OTC' },
+    { i: 'Loperamide', c: 'BR', b: 'Imosec', s: 'FULL_OTC' },
+    { i: 'Loperamide', c: 'IT', b: 'Imodium', s: 'FULL_OTC' },
+    { i: 'Loperamide', c: 'ES', b: 'Fortasec', s: 'FULL_OTC' },
+    { i: 'Loperamide', c: 'MX', b: 'Diarstop', s: 'FULL_OTC' },
+    { i: 'Loperamide', c: 'AU', b: 'Gastro-Stop', s: 'FULL_OTC' },
+    { i: 'Loperamide', c: 'TH', b: 'Imodium', s: 'PHARMACY_ONLY' },
+    { i: 'Loperamide', c: 'VN', b: 'Imodium', s: 'PHARMACY_ONLY' },
+    { i: 'Loperamide', c: 'KR', b: 'Imodium', s: 'PHARMACY_ONLY' },
+    { i: 'Loperamide', c: 'SE', b: 'Imodium', s: 'FULL_OTC' },
+    { i: 'Loperamide', c: 'AE', b: 'Imodium', s: 'PHARMACY_ONLY' },
+    { i: 'Loperamide', c: 'TR', b: 'Imodium', s: 'PHARMACY_ONLY' },
+    { i: 'Loperamide', c: 'EG', b: 'Imodium', s: 'PHARMACY_ONLY' },
+    // Cetirizine
+    { i: 'Cetirizine', c: 'US', b: 'Zyrtec', s: 'FULL_OTC' },
+    { i: 'Cetirizine', c: 'IN', b: 'Cetzine', s: 'FULL_OTC' },
+    { i: 'Cetirizine', c: 'JP', b: 'Zyrtec', s: 'PHARMACY_ONLY' },
+    { i: 'Cetirizine', c: 'GB', b: 'Piriteze', s: 'FULL_OTC' },
+    { i: 'Cetirizine', c: 'DE', b: 'Zyrtec', s: 'FULL_OTC' },
+    { i: 'Cetirizine', c: 'FR', b: 'Zyrtec', s: 'FULL_OTC' },
+    { i: 'Cetirizine', c: 'BR', b: 'Zyrtec', s: 'FULL_OTC' },
+    { i: 'Cetirizine', c: 'IT', b: 'Zirtec', s: 'FULL_OTC' },
+    { i: 'Cetirizine', c: 'ES', b: 'Zyrtec', s: 'FULL_OTC' },
+    { i: 'Cetirizine', c: 'MX', b: 'Zyrtec', s: 'FULL_OTC' },
+    { i: 'Cetirizine', c: 'AU', b: 'Zyrtec', s: 'FULL_OTC' },
+    { i: 'Cetirizine', c: 'TH', b: 'Zyrtec', s: 'PHARMACY_ONLY' },
+    { i: 'Cetirizine', c: 'VN', b: 'Zyrtec', s: 'PHARMACY_ONLY' },
+    { i: 'Cetirizine', c: 'KR', b: 'Zyrtec', s: 'PHARMACY_ONLY' },
+    { i: 'Cetirizine', c: 'SE', b: 'Zyrtec', s: 'FULL_OTC' },
+    { i: 'Cetirizine', c: 'AE', b: 'Zyrtec', s: 'FULL_OTC' },
+    { i: 'Cetirizine', c: 'TR', b: 'Zyrtec', s: 'FULL_OTC' },
+    // Omeprazole
+    { i: 'Omeprazole', c: 'US', b: 'Prilosec', s: 'FULL_OTC' },
+    { i: 'Omeprazole', c: 'IN', b: 'Omez', s: 'PHARMACY_ONLY' },
+    { i: 'Omeprazole', c: 'JP', b: 'Omepral', s: 'PHARMACY_ONLY' },
+    { i: 'Omeprazole', c: 'GB', b: 'Losec', s: 'PHARMACY_ONLY' },
+    { i: 'Omeprazole', c: 'DE', b: 'Antra', s: 'PHARMACY_ONLY' },
+    { i: 'Omeprazole', c: 'FR', b: 'Mopral', s: 'PHARMACY_ONLY' },
+    { i: 'Omeprazole', c: 'BR', b: 'Losec', s: 'PHARMACY_ONLY' },
+    { i: 'Omeprazole', c: 'IT', b: 'Losec', s: 'PHARMACY_ONLY' },
+    { i: 'Omeprazole', c: 'ES', b: 'Losec', s: 'PHARMACY_ONLY' },
+    { i: 'Omeprazole', c: 'MX', b: 'Losec', s: 'PHARMACY_ONLY' },
+    { i: 'Omeprazole', c: 'AU', b: 'Losec', s: 'PHARMACY_ONLY' },
+    { i: 'Omeprazole', c: 'TH', b: 'Losec', s: 'PHARMACY_ONLY' },
+    { i: 'Omeprazole', c: 'KR', b: 'Losec', s: 'PHARMACY_ONLY' },
+    { i: 'Omeprazole', c: 'SE', b: 'Losec', s: 'PHARMACY_ONLY' },
+    { i: 'Omeprazole', c: 'AE', b: 'Losec', s: 'PHARMACY_ONLY' },
+    // Bismuth Subsalicylate
+    { i: 'Bismuth Subsalicylate', c: 'US', b: 'Pepto-Bismol', s: 'FULL_OTC' },
+    { i: 'Bismuth Subsalicylate', c: 'GB', b: 'Pepto-Bismol', s: 'FULL_OTC' },
+    { i: 'Bismuth Subsalicylate', c: 'AU', b: 'Pepto-Bismol', s: 'FULL_OTC' },
+    { i: 'Bismuth Subsalicylate', c: 'MX', b: 'Pepto-Bismol', s: 'FULL_OTC' },
+    // Oral Rehydration Salts
+    { i: 'Oral Rehydration Salts', c: 'US', b: 'Pedialyte', s: 'FULL_OTC' },
+    { i: 'Oral Rehydration Salts', c: 'IN', b: 'Electral', s: 'FULL_OTC' },
+    { i: 'Oral Rehydration Salts', c: 'GB', b: 'Dioralyte', s: 'FULL_OTC' },
+    { i: 'Oral Rehydration Salts', c: 'JP', b: 'OS-1', s: 'FULL_OTC' },
+    { i: 'Oral Rehydration Salts', c: 'TH', b: 'ORS', s: 'FULL_OTC' },
+    { i: 'Oral Rehydration Salts', c: 'VN', b: 'Oresol', s: 'FULL_OTC' },
+    { i: 'Oral Rehydration Salts', c: 'MX', b: 'Pedialyte', s: 'FULL_OTC' },
+    { i: 'Oral Rehydration Salts', c: 'BR', b: 'Rehidrat', s: 'FULL_OTC' },
+    { i: 'Oral Rehydration Salts', c: 'EG', b: 'Rehydra', s: 'FULL_OTC' },
+    { i: 'Oral Rehydration Salts', c: 'NG', b: 'ORS', s: 'FULL_OTC' },
+    // Dimenhydrinate
+    { i: 'Dimenhydrinate', c: 'US', b: 'Dramamine', s: 'FULL_OTC' },
+    { i: 'Dimenhydrinate', c: 'IN', b: 'Avomine', s: 'FULL_OTC' },
+    { i: 'Dimenhydrinate', c: 'GB', b: 'Travel Calm', s: 'FULL_OTC' },
+    { i: 'Dimenhydrinate', c: 'JP', b: 'Aneron', s: 'FULL_OTC' },
+    { i: 'Dimenhydrinate', c: 'DE', b: 'Vomex A', s: 'FULL_OTC' },
+    { i: 'Dimenhydrinate', c: 'FR', b: 'Nausicalm', s: 'FULL_OTC' },
+    { i: 'Dimenhydrinate', c: 'AU', b: 'Travacalm', s: 'FULL_OTC' },
+    { i: 'Dimenhydrinate', c: 'TH', b: 'Dimen', s: 'FULL_OTC' },
+    { i: 'Dimenhydrinate', c: 'MX', b: 'Dramamine', s: 'FULL_OTC' },
+    { i: 'Dimenhydrinate', c: 'BR', b: 'Dramin', s: 'FULL_OTC' },
+    // Diphenhydramine
+    { i: 'Diphenhydramine', c: 'US', b: 'Benadryl', s: 'FULL_OTC' },
+    { i: 'Diphenhydramine', c: 'IN', b: 'Benadryl', s: 'FULL_OTC' },
+    { i: 'Diphenhydramine', c: 'GB', b: 'Benadryl', s: 'FULL_OTC' },
+    { i: 'Diphenhydramine', c: 'JP', b: 'Restamin', s: 'PHARMACY_ONLY' },
+    { i: 'Diphenhydramine', c: 'AU', b: 'Benadryl', s: 'FULL_OTC' },
+    { i: 'Diphenhydramine', c: 'MX', b: 'Benadryl', s: 'FULL_OTC' },
+    { i: 'Diphenhydramine', c: 'BR', b: 'Benadryl', s: 'FULL_OTC' },
+    { i: 'Diphenhydramine', c: 'FR', b: 'Nautamine', s: 'FULL_OTC' },
+    // Loratadine
+    { i: 'Loratadine', c: 'US', b: 'Claritin', s: 'FULL_OTC' },
+    { i: 'Loratadine', c: 'IN', b: 'Lorfast', s: 'FULL_OTC' },
+    { i: 'Loratadine', c: 'GB', b: 'Clarityn', s: 'FULL_OTC' },
+    { i: 'Loratadine', c: 'JP', b: 'Claritin', s: 'PHARMACY_ONLY' },
+    { i: 'Loratadine', c: 'DE', b: 'Claritin', s: 'FULL_OTC' },
+    { i: 'Loratadine', c: 'FR', b: 'Clarityne', s: 'FULL_OTC' },
+    { i: 'Loratadine', c: 'AU', b: 'Claratyne', s: 'FULL_OTC' },
+    { i: 'Loratadine', c: 'MX', b: 'Claritin', s: 'FULL_OTC' },
+    { i: 'Loratadine', c: 'BR', b: 'Claritin', s: 'FULL_OTC' },
+    { i: 'Loratadine', c: 'TH', b: 'Claritin', s: 'PHARMACY_ONLY' },
+    // Diclofenac
+    { i: 'Diclofenac', c: 'IN', b: 'Voveran', s: 'PHARMACY_ONLY' },
+    { i: 'Diclofenac', c: 'JP', b: 'Voltaren', s: 'PHARMACY_ONLY' },
+    { i: 'Diclofenac', c: 'DE', b: 'Voltaren', s: 'PHARMACY_ONLY' },
+    { i: 'Diclofenac', c: 'GB', b: 'Voltarol', s: 'PHARMACY_ONLY' },
+    { i: 'Diclofenac', c: 'US', b: 'Voltaren', s: 'FULL_OTC' },
+    { i: 'Diclofenac', c: 'BR', b: 'Voltaren', s: 'PHARMACY_ONLY' },
+    { i: 'Diclofenac', c: 'MX', b: 'Voltaren', s: 'PHARMACY_ONLY' },
+    { i: 'Diclofenac', c: 'TH', b: 'Voltaren', s: 'PHARMACY_ONLY' },
+    { i: 'Diclofenac', c: 'TR', b: 'Voltaren', s: 'PHARMACY_ONLY' },
+    // Naproxen
+    { i: 'Naproxen', c: 'US', b: 'Aleve', s: 'FULL_OTC' },
+    { i: 'Naproxen', c: 'GB', b: 'Feminax', s: 'FULL_OTC' },
+    { i: 'Naproxen', c: 'DE', b: 'Dolormin Extra', s: 'FULL_OTC' },
+    { i: 'Naproxen', c: 'IN', b: 'Naprosyn', s: 'PHARMACY_ONLY' },
+    { i: 'Naproxen', c: 'AU', b: 'Naprogesic', s: 'FULL_OTC' },
+    { i: 'Naproxen', c: 'MX', b: 'Flanax', s: 'FULL_OTC' },
+    { i: 'Naproxen', c: 'BR', b: 'Flanax', s: 'FULL_OTC' },
+    { i: 'Naproxen', c: 'SE', b: 'Pronaxen', s: 'FULL_OTC' },
+    // Simethicone
+    { i: 'Simethicone', c: 'US', b: 'Gas-X', s: 'FULL_OTC' },
+    { i: 'Simethicone', c: 'IN', b: 'Digene', s: 'FULL_OTC' },
+    { i: 'Simethicone', c: 'GB', b: 'WindSetlers', s: 'FULL_OTC' },
+    { i: 'Simethicone', c: 'JP', b: 'Gaason', s: 'FULL_OTC' },
+    { i: 'Simethicone', c: 'DE', b: 'Lefax', s: 'FULL_OTC' },
+    { i: 'Simethicone', c: 'FR', b: 'Meteosim', s: 'FULL_OTC' },
+    { i: 'Simethicone', c: 'AU', b: 'De-Gas', s: 'FULL_OTC' },
+    { i: 'Simethicone', c: 'MX', b: 'Aero-OM', s: 'FULL_OTC' },
+    // Hydrocortisone
+    { i: 'Hydrocortisone', c: 'US', b: 'Cortizone-10', s: 'FULL_OTC' },
+    { i: 'Hydrocortisone', c: 'GB', b: 'HC45', s: 'FULL_OTC' },
+    { i: 'Hydrocortisone', c: 'IN', b: 'Caladryl', s: 'FULL_OTC' },
+    { i: 'Hydrocortisone', c: 'AU', b: 'Dermaid', s: 'FULL_OTC' },
+    { i: 'Hydrocortisone', c: 'DE', b: 'Hydrocutan', s: 'FULL_OTC' },
+    { i: 'Hydrocortisone', c: 'FR', b: 'Cortisedermyl', s: 'FULL_OTC' },
+    { i: 'Hydrocortisone', c: 'JP', b: 'Locoid', s: 'PHARMACY_ONLY' },
+    // Clotrimazole
+    { i: 'Clotrimazole', c: 'US', b: 'Lotrimin', s: 'FULL_OTC' },
+    { i: 'Clotrimazole', c: 'GB', b: 'Canesten', s: 'FULL_OTC' },
+    { i: 'Clotrimazole', c: 'IN', b: 'Candid', s: 'FULL_OTC' },
+    { i: 'Clotrimazole', c: 'AU', b: 'Canesten', s: 'FULL_OTC' },
+    { i: 'Clotrimazole', c: 'DE', b: 'Canesten', s: 'FULL_OTC' },
+    { i: 'Clotrimazole', c: 'FR', b: 'Canesten', s: 'FULL_OTC' },
+    { i: 'Clotrimazole', c: 'MX', b: 'Canesten', s: 'FULL_OTC' },
+    { i: 'Clotrimazole', c: 'BR', b: 'Canesten', s: 'FULL_OTC' },
+    // Guaifenesin
+    { i: 'Guaifenesin', c: 'US', b: 'Mucinex', s: 'FULL_OTC' },
+    { i: 'Guaifenesin', c: 'GB', b: 'Benylin', s: 'FULL_OTC' },
+    { i: 'Guaifenesin', c: 'IN', b: 'Alex', s: 'FULL_OTC' },
+    { i: 'Guaifenesin', c: 'AU', b: 'Robitussin', s: 'FULL_OTC' },
+    { i: 'Guaifenesin', c: 'MX', b: 'Tukol', s: 'FULL_OTC' },
+    { i: 'Guaifenesin', c: 'BR', b: 'Mucosolvan', s: 'FULL_OTC' },
+    // Dextromethorphan
+    { i: 'Dextromethorphan', c: 'US', b: 'Robitussin DM', s: 'FULL_OTC' },
+    { i: 'Dextromethorphan', c: 'GB', b: 'Benylin DM', s: 'FULL_OTC' },
+    { i: 'Dextromethorphan', c: 'IN', b: 'Benadryl DR', s: 'FULL_OTC' },
+    { i: 'Dextromethorphan', c: 'AU', b: 'Bisolvon', s: 'FULL_OTC' },
+    { i: 'Dextromethorphan', c: 'MX', b: 'Tukol DM', s: 'FULL_OTC' },
+    { i: 'Dextromethorphan', c: 'BR', b: 'Vick 44E', s: 'FULL_OTC' },
+    // Pseudoephedrine
+    { i: 'Pseudoephedrine', c: 'US', b: 'Sudafed', s: 'PHARMACY_ONLY' },
+    { i: 'Pseudoephedrine', c: 'GB', b: 'Sudafed', s: 'PHARMACY_ONLY' },
+    { i: 'Pseudoephedrine', c: 'AU', b: 'Sudafed', s: 'PHARMACY_ONLY' },
+    { i: 'Pseudoephedrine', c: 'IN', b: 'Sinarest', s: 'PHARMACY_ONLY' },
+    { i: 'Pseudoephedrine', c: 'MX', b: 'Sudafed', s: 'PHARMACY_ONLY' },
+    // Phenylephrine
+    { i: 'Phenylephrine', c: 'US', b: 'Sudafed PE', s: 'FULL_OTC' },
+    { i: 'Phenylephrine', c: 'GB', b: 'Sudafed PE', s: 'FULL_OTC' },
+    { i: 'Phenylephrine', c: 'IN', b: 'Otrivin', s: 'FULL_OTC' },
+    { i: 'Phenylephrine', c: 'AU', b: 'Demazin', s: 'FULL_OTC' },
+    { i: 'Phenylephrine', c: 'MX', b: 'Sudafed PE', s: 'FULL_OTC' },
+    // Meclizine
+    { i: 'Meclizine', c: 'US', b: 'Bonine', s: 'FULL_OTC' },
+    { i: 'Meclizine', c: 'IN', b: 'Vertin', s: 'PHARMACY_ONLY' },
+    { i: 'Meclizine', c: 'GB', b: 'Stugeron', s: 'PHARMACY_ONLY' },
+    { i: 'Meclizine', c: 'AU', b: 'Travacalm', s: 'FULL_OTC' },
+    // Famotidine
+    { i: 'Famotidine', c: 'US', b: 'Pepcid', s: 'FULL_OTC' },
+    { i: 'Famotidine', c: 'IN', b: 'Famocid', s: 'PHARMACY_ONLY' },
+    { i: 'Famotidine', c: 'JP', b: 'Gaster', s: 'PHARMACY_ONLY' },
+    { i: 'Famotidine', c: 'GB', b: 'Pepcid', s: 'FULL_OTC' },
+    { i: 'Famotidine', c: 'AU', b: 'Pepcidine', s: 'FULL_OTC' },
+    { i: 'Famotidine', c: 'MX', b: 'Pepcid', s: 'FULL_OTC' },
+    // Ketoconazole
+    { i: 'Ketoconazole', c: 'US', b: 'Nizoral', s: 'FULL_OTC' },
+    { i: 'Ketoconazole', c: 'IN', b: 'Nizral', s: 'PHARMACY_ONLY' },
+    { i: 'Ketoconazole', c: 'GB', b: 'Nizoral', s: 'PHARMACY_ONLY' },
+    { i: 'Ketoconazole', c: 'AU', b: 'Nizoral', s: 'PHARMACY_ONLY' },
+    { i: 'Ketoconazole', c: 'BR', b: 'Nizoral', s: 'PHARMACY_ONLY' },
+    // Mupirocin
+    { i: 'Mupirocin', c: 'US', b: 'Bactroban', s: 'PRESCRIPTION_ONLY' },
+    { i: 'Mupirocin', c: 'IN', b: 'T-Bact', s: 'PRESCRIPTION_ONLY' },
+    { i: 'Mupirocin', c: 'GB', b: 'Bactroban', s: 'PRESCRIPTION_ONLY' },
+    { i: 'Mupirocin', c: 'AU', b: 'Bactroban', s: 'PRESCRIPTION_ONLY' },
+    // Fluticasone
+    { i: 'Fluticasone', c: 'US', b: 'Flonase', s: 'FULL_OTC' },
+    { i: 'Fluticasone', c: 'GB', b: 'Flixonase', s: 'FULL_OTC' },
+    { i: 'Fluticasone', c: 'IN', b: 'Flomist', s: 'PHARMACY_ONLY' },
+    { i: 'Fluticasone', c: 'AU', b: 'Flixonase', s: 'FULL_OTC' },
+    { i: 'Fluticasone', c: 'DE', b: 'Avamys', s: 'PHARMACY_ONLY' },
+    { i: 'Fluticasone', c: 'MX', b: 'Flonase', s: 'FULL_OTC' },
+];
+// ── helpers ──────────────────────────────────────────────────────
+function cuid() {
+    return Math.random().toString(36).slice(2, 11) + Date.now().toString(36);
+}
 async function main() {
-    const countries = await Promise.all([
-        prisma.country.upsert({ where: { code: 'US' }, update: {}, create: { name: 'United States', code: 'US' } }),
-        prisma.country.upsert({ where: { code: 'IN' }, update: {}, create: { name: 'India', code: 'IN' } }),
-        prisma.country.upsert({ where: { code: 'JP' }, update: {}, create: { name: 'Japan', code: 'JP' } }),
-        prisma.country.upsert({ where: { code: 'GB' }, update: {}, create: { name: 'United Kingdom', code: 'GB' } }),
-        prisma.country.upsert({ where: { code: 'DE' }, update: {}, create: { name: 'Germany', code: 'DE' } }),
-        prisma.country.upsert({ where: { code: 'FR' }, update: {}, create: { name: 'France', code: 'FR' } }),
-        prisma.country.upsert({ where: { code: 'BR' }, update: {}, create: { name: 'Brazil', code: 'BR' } }),
-        prisma.country.upsert({ where: { code: 'IT' }, update: {}, create: { name: 'Italy', code: 'IT' } }),
-        prisma.country.upsert({ where: { code: 'ES' }, update: {}, create: { name: 'Spain', code: 'ES' } }),
-        prisma.country.upsert({ where: { code: 'MX' }, update: {}, create: { name: 'Mexico', code: 'MX' } }),
-        prisma.country.upsert({ where: { code: 'AU' }, update: {}, create: { name: 'Australia', code: 'AU' } }),
-        prisma.country.upsert({ where: { code: 'TH' }, update: {}, create: { name: 'Thailand', code: 'TH' } }),
-        prisma.country.upsert({ where: { code: 'VN' }, update: {}, create: { name: 'Vietnam', code: 'VN' } }),
-        prisma.country.upsert({ where: { code: 'KR' }, update: {}, create: { name: 'South Korea', code: 'KR' } }),
-        prisma.country.upsert({ where: { code: 'SE' }, update: {}, create: { name: 'Sweden', code: 'SE' } }),
-        prisma.country.upsert({ where: { code: 'AE' }, update: {}, create: { name: 'UAE', code: 'AE' } }),
-        prisma.country.upsert({ where: { code: 'ZA' }, update: {}, create: { name: 'South Africa', code: 'ZA' } }),
-        prisma.country.upsert({ where: { code: 'NG' }, update: {}, create: { name: 'Nigeria', code: 'NG' } }),
-        prisma.country.upsert({ where: { code: 'TR' }, update: {}, create: { name: 'Turkey', code: 'TR' } }),
-        prisma.country.upsert({ where: { code: 'EG' }, update: {}, create: { name: 'Egypt', code: 'EG' } })
-    ]);
-    const ingredientNames = [
-        'Paracetamol', 'Ibuprofen', 'Loperamide', 'Cetirizine', 'Omeprazole',
-        'Simethicone', 'Bismuth Subsalicylate', 'Oral Rehydration Salts', 'Hydrocortisone', 'Clotrimazole',
-        'Diclofenac', 'Naproxen', 'Diphenhydramine', 'Loratadine', 'Famotidine',
-        'Ranitidine', 'Dimenhydrinate', 'Meclizine', 'Mupirocin', 'Bacitracin',
-        'Neomycin', 'Polymyxin B', 'Tolnaftate', 'Ketoconazole', 'Guaifenesin',
-        'Dextromethorphan', 'Pseudoephedrine', 'Phenylephrine', 'Salbutamol', 'Fluticasone'
-    ];
-    const ingredients = await Promise.all(ingredientNames.map((name) => prisma.activeIngredient.upsert({
-        where: { name },
-        update: {},
-        create: { name }
-    })));
-    const countryByCode = new Map(countries.map((c) => [c.code, c]));
-    const ingredientByName = new Map(ingredients.map((i) => [i.name, i]));
-    let seeded = 0;
-    for (const map of mappings) {
-        const ingredient = ingredientByName.get(map.ingredient);
-        const country = countryByCode.get(map.country);
-        if (!ingredient || !country) {
-            console.warn(`Skipping mapping: ${map.ingredient} / ${map.country}`);
+    console.log('Seeding CareCompass database…');
+    // --- Step 1: countries (single bulk INSERT, ~5 ms) --------
+    const countryValues = COUNTRIES.map(c => `('${cuid()}','${c.name.replace(/'/g, "''")}','${c.code}')`).join(',');
+    await prisma.$executeRawUnsafe(`
+    INSERT INTO "Country" (id, name, code)
+    VALUES ${countryValues}
+    ON CONFLICT (code) DO NOTHING
+  `);
+    console.log(`✓ Countries (${COUNTRIES.length})`);
+    // --- Step 2: active ingredients (single bulk INSERT, ~5 ms) -
+    const ingValues = INGREDIENTS.map(name => `('${cuid()}','${name.replace(/'/g, "''")}')`)
+        .join(',');
+    await prisma.$executeRawUnsafe(`
+    INSERT INTO "ActiveIngredient" (id, name)
+    VALUES ${ingValues}
+    ON CONFLICT (name) DO NOTHING
+  `);
+    console.log(`✓ ActiveIngredients (${INGREDIENTS.length})`);
+    // --- Step 3: fetch IDs back (2 queries) --------------------
+    const countries = await prisma.country.findMany();
+    const ingredients = await prisma.activeIngredient.findMany();
+    const countryByCode = new Map(countries.map(c => [c.code, c]));
+    const ingByName = new Map(ingredients.map(i => [i.name, i]));
+    // --- Step 4: brands + edges (2 bulk INSERTs) ---------------
+    const brandRows = [];
+    const edgeRows = [];
+    for (const m of MAPPINGS) {
+        const country = countryByCode.get(m.c);
+        const ingredient = ingByName.get(m.i);
+        if (!country || !ingredient) {
+            console.warn(`  skip: ${m.i} / ${m.c}`);
             continue;
         }
-        const brand = await prisma.brand.upsert({
-            where: { name_countryId: { name: map.brand, countryId: country.id } },
-            update: {},
-            create: {
-                name: map.brand,
-                countryId: country.id,
-                activeIngredientId: ingredient.id,
-                otcStatus: map.status,
-                doseRule: map.doseRule ?? 'STANDARD_OTC'
-            }
-        });
-        await prisma.medicationEdge.upsert({
-            where: {
-                activeIngredientId_countryId_brandId: {
-                    activeIngredientId: ingredient.id,
-                    countryId: country.id,
-                    brandId: brand.id
-                }
-            },
-            update: {},
-            create: {
-                activeIngredientId: ingredient.id,
-                countryId: country.id,
-                brandId: brand.id
-            }
-        });
-        seeded += 1;
+        const brandId = cuid();
+        brandRows.push(`('${brandId}','${m.b.replace(/'/g, "''")}','${country.id}','${ingredient.id}','${m.s}','${m.d ?? 'STANDARD_OTC'}')`);
+        edgeRows.push(`('${cuid()}','${ingredient.id}','${country.id}','${brandId}')`);
     }
-    console.log(`Seeded ${seeded} medication mappings across ${countries.length} countries`);
+    // brands
+    await prisma.$executeRawUnsafe(`
+    INSERT INTO "Brand" (id, name, "countryId", "activeIngredientId", "otcStatus", "doseRule")
+    VALUES ${brandRows.join(',')}
+    ON CONFLICT (name, "countryId") DO NOTHING
+  `);
+    console.log(`✓ Brands (${brandRows.length})`);
+    // medication edges — brand IDs from above might conflict if brand already existed
+    // re-fetch brand IDs to be safe
+    const brands = await prisma.brand.findMany({ select: { id: true, name: true, countryId: true } });
+    const brandKey = new Map(brands.map(b => [`${b.name}|${b.countryId}`, b.id]));
+    const safeEdgeRows = [];
+    for (const m of MAPPINGS) {
+        const country = countryByCode.get(m.c);
+        const ingredient = ingByName.get(m.i);
+        if (!country || !ingredient)
+            continue;
+        const brandId = brandKey.get(`${m.b}|${country.id}`);
+        if (!brandId)
+            continue;
+        safeEdgeRows.push(`('${cuid()}','${ingredient.id}','${country.id}','${brandId}')`);
+    }
+    if (safeEdgeRows.length > 0) {
+        await prisma.$executeRawUnsafe(`
+      INSERT INTO "MedicationEdge" (id, "activeIngredientId", "countryId", "brandId")
+      VALUES ${safeEdgeRows.join(',')}
+      ON CONFLICT ("activeIngredientId","countryId","brandId") DO NOTHING
+    `);
+    }
+    console.log(`✓ MedicationEdges (${safeEdgeRows.length})`);
+    // --- Summary -----------------------------------------------
+    const [cCount, iCount, bCount, eCount] = await Promise.all([
+        prisma.country.count(),
+        prisma.activeIngredient.count(),
+        prisma.brand.count(),
+        prisma.medicationEdge.count(),
+    ]);
+    console.log('\n═══════════════════════════════');
+    console.log(`  Countries:          ${cCount}`);
+    console.log(`  ActiveIngredients:  ${iCount}`);
+    console.log(`  Brands:             ${bCount}`);
+    console.log(`  MedicationEdges:    ${eCount}`);
+    console.log('═══════════════════════════════');
+    console.log('Seed complete ✓');
 }
 main()
-    .then(async () => {
-    await prisma.$disconnect();
-    console.log('Seed complete');
-})
+    .then(() => prisma.$disconnect())
     .catch(async (e) => {
     console.error(e);
     await prisma.$disconnect();

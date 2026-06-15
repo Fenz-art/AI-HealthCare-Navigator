@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { executeWithRetryAndFallback, generateText } from '@/lib/ai/utils';
+import { executeWithRetryAndFallback, generateText } from '../ai/utils.js';
 
 const IngredientArraySchema = z.array(z.string());
 

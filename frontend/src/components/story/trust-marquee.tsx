@@ -20,16 +20,17 @@ const COUNTRIES = [
 
 export function TrustMarquee() {
   return (
-    <section className="border-y mk-hairline py-14">
+    <section className="border-y py-14" style={{ borderColor: "var(--hairline)" }}>
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <p className="text-center text-sm text-[var(--mk-text-tertiary)]">
+        <p className="text-center text-sm" style={{ color: "var(--ink-tertiary)" }}>
           Where CareCompass travelers have found care.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-x-10 gap-y-4">
           {COUNTRIES.map((country) => (
             <span
               key={country}
-              className="font-display text-sm font-medium tracking-tight text-[var(--mk-text-tertiary)] transition-colors duration-200 hover:text-[var(--mk-text-secondary)]"
+              className="text-sm font-medium tracking-tight transition-colors duration-200"
+              style={{ color: "var(--ink-subtle)" }}
             >
               {country}
             </span>

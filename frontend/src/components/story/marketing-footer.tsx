@@ -32,20 +32,20 @@ type MarketingFooterProps = {
 
 export function MarketingFooter({ locale }: MarketingFooterProps) {
   return (
-    <footer className="border-t mk-hairline">
-      <section className="border-b mk-hairline px-4 py-20 sm:px-6">
+    <footer style={{ borderColor: "var(--hairline)" }} className="border-t bg-[var(--canvas)]">
+      <section className="border-b px-4 py-20 sm:px-6" style={{ borderColor: "var(--hairline)" }}>
         <div className="mx-auto max-w-3xl text-center">
-          <p className="text-sm text-[var(--mk-text-secondary)]">
+          <p className="text-sm" style={{ color: "var(--ink-muted)" }}>
             Free session. No card. Upgrade when it sticks.
           </p>
           <h2 className="mk-headline mt-4">
             Get your next care decision off your plate tonight.
           </h2>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link href={`/${locale}/app/session/new`} className="mk-btn-primary">
+            <Link href={`/${locale}/signup`} className="mk-btn-inverse px-5">
               Get started
             </Link>
-            <Link href={`/${locale}/features`} className="mk-btn-outline">
+            <Link href={`/${locale}/features`} className="mk-btn-outline px-5">
               See features
             </Link>
           </div>
@@ -56,19 +56,20 @@ export function MarketingFooter({ locale }: MarketingFooterProps) {
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
           <div className="lg:col-span-1">
             <Logo />
-            <p className="mt-4 text-sm leading-relaxed text-[var(--mk-text-secondary)]">
+            <p className="mt-4 text-sm leading-relaxed" style={{ color: "var(--ink-subtle)" }}>
               Healthcare navigation for travelers. Guidance, not diagnosis.
             </p>
           </div>
           {Object.entries(FOOTER_LINKS).map(([title, links]) => (
             <div key={title}>
-              <p className="text-sm font-semibold text-[var(--mk-text)]">{title}</p>
+              <p className="text-sm font-semibold" style={{ color: "var(--ink)" }}>{title}</p>
               <ul className="mt-4 space-y-2">
                 {links.map((link) => (
                   <li key={link.label}>
                     <Link
                       href={`/${locale}${link.href}`}
-                      className="text-sm text-[var(--mk-text-secondary)] transition-colors hover:text-[var(--mk-text)]"
+                      className="text-sm transition-colors hover:opacity-80"
+                      style={{ color: "var(--ink-subtle)" }}
                     >
                       {link.label}
                     </Link>
@@ -79,13 +80,14 @@ export function MarketingFooter({ locale }: MarketingFooterProps) {
           ))}
         </div>
 
-        <div className="mt-14 flex flex-col items-center justify-between gap-4 border-t pt-8 sm:flex-row mk-hairline">
-          <p className="text-xs text-[var(--mk-text-tertiary)]">
+        <div className="mt-14 flex flex-col items-center justify-between gap-4 border-t pt-8 sm:flex-row" style={{ borderColor: "var(--hairline)" }}>
+          <p className="text-xs" style={{ color: "var(--ink-tertiary)" }}>
             © 2026 CareCompass. All rights reserved.
           </p>
           <a
             href="mailto:hello@carecompass.health"
-            className="text-xs text-[var(--mk-text-tertiary)] hover:text-[var(--mk-text-secondary)]"
+            className="text-xs transition-colors hover:opacity-80"
+            style={{ color: "var(--ink-tertiary)" }}
           >
             hello@carecompass.health
           </a>

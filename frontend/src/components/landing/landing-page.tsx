@@ -18,12 +18,38 @@ import { HealthGraph } from "@/components/product/health-graph";
 import { DemoCard } from "@/components/story/demo-card";
 import { FaqSection } from "@/components/story/faq-section";
 import { MarketingFooter } from "@/components/story/marketing-footer";
+import { UseCaseJourney } from "@/components/marketing/use-case-journey";
+import Link from "next/link";
 
 const SCENARIOS = [
-  { city: "Tokyo", issue: "Food poisoning", result: "Pharmacy · Recovered in 6h" },
-  { city: "Bangkok", issue: "Heat exhaustion", result: "Clinic · IV fluids" },
-  { city: "São Paulo", issue: "Medication refill", result: "Pharmacy · Resolved" },
-  { city: "Berlin", issue: "Lost prescription", result: "Clinic · New script" },
+  {
+    city: "Tokyo",
+    country: "Japan",
+    flag: "🇯🇵",
+    title: "Food poisoning in Tokyo",
+    subtitle: "Severity routes to pharmacy before panic sets in.",
+    outcome: "Recovered · 6h",
+    steps: [
+      { phase: "Detect", title: "Symptoms logged", detail: "Pharmacy route selected." },
+      { phase: "Navigate", title: "Imodium HP mapped", detail: "Local brand from loperamide." },
+      { phase: "Locate", title: "Matsukiyo · 0.4 km", detail: "Walking directions ready." },
+      { phase: "Resolve", title: "Outcome saved", detail: "Passport updated." },
+    ],
+  },
+  {
+    city: "Bangkok",
+    country: "Thailand",
+    flag: "🇹🇭",
+    title: "Lost prescription in Bangkok",
+    subtitle: "Blood pressure medication left at home.",
+    outcome: "Refilled · same day",
+    steps: [
+      { phase: "Vault", title: "Prescription retrieved", detail: "Lisinopril 10mg on file." },
+      { phase: "Navigate", title: "Thai equivalent found", detail: "Same active ingredient." },
+      { phase: "Translate", title: "Thai card ready", detail: "Dosage in local script." },
+      { phase: "Resolve", title: "Timeline updated", detail: "Medication history saved." },
+    ],
+  },
 ];
 
 export function LandingPage() {
@@ -33,18 +59,21 @@ export function LandingPage() {
     <SmoothScrollProvider>
       <MarketingHero />
       <TrustMarquee />
-      <ChaosNarrative />
 
-      <section className="border-t mk-hairline py-20 sm:py-28">
+      <section className="border-t py-20 sm:py-28" style={{ borderColor: "var(--hairline)" }}>
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <p className="mk-label">The pipeline</p>
-          <h2 className="mk-headline mt-4">Five stages. One agent. Zero guesswork.</h2>
-          <p className="mk-subhead mt-5 max-w-2xl">
-            Every session follows the same calm sequence — from symptom to outcome. No
-            spreadsheets. No six apps. One healthcare navigation OS.
+          <p className="mk-label">A new species of healthcare tool</p>
+          <h2 className="mk-headline mt-4 max-w-2xl">
+            Purpose-built for navigation — not diagnosis.
+          </h2>
+          <p className="mk-subhead mt-5 max-w-xl">
+            Every session follows the same calm sequence — from symptom to outcome. One healthcare
+            navigation OS for global travelers.
           </p>
         </div>
       </section>
+
+      <ChaosNarrative />
 
       <StoryStage
         stage="01"
@@ -99,7 +128,6 @@ export function LandingPage() {
         label="GRAPH"
         title="Every session strengthens the network."
         description="Symptoms, medication, providers, language, and outcomes — connected into a global healthcare navigation graph."
-        className="bg-[var(--mk-surface)]"
       >
         <DemoCard
           eyebrow="Global health graph"
@@ -110,19 +138,20 @@ export function LandingPage() {
         </DemoCard>
       </StoryStage>
 
-      <section className="border-t mk-hairline py-20 sm:py-28">
+      <section className="border-t py-20 sm:py-28" style={{ borderColor: "var(--hairline)" }}>
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <p className="mk-label">Real scenarios</p>
-          <h2 className="mk-headline mt-4">Built for how travelers actually get sick.</h2>
-          <div className="mt-12 grid gap-px border bg-[var(--mk-border)] sm:grid-cols-2 mk-hairline">
+          <div className="flex items-end justify-between gap-6">
+            <div>
+              <p className="mk-label">Real scenarios</p>
+              <h2 className="mk-headline mt-4">Built for how travelers actually get sick.</h2>
+            </div>
+            <Link href={`/${locale}/use-cases`} className="mk-btn-outline hidden sm:inline-flex">
+              All use cases
+            </Link>
+          </div>
+          <div className="mt-12 grid gap-6 lg:grid-cols-2">
             {SCENARIOS.map((s) => (
-              <div key={s.city} className="bg-[var(--mk-surface)] p-8">
-                <p className="font-display text-xl font-bold">{s.city}</p>
-                <p className="mt-2 text-sm text-[var(--mk-text-secondary)]">{s.issue}</p>
-                <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-[var(--mk-accent)]">
-                  {s.result}
-                </p>
-              </div>
+              <UseCaseJourney key={s.title} {...s} />
             ))}
           </div>
         </div>

@@ -1,5 +1,6 @@
-import { ProviderType, SeverityLevel } from '@prisma/client';
-import { SeverityResult } from '@/lib/severity/engine';
+import { SeverityResult } from '../severity/engine.js';
+import { ProviderType } from '../providers/geoapify.js';
+type SeverityLevel = 'SELF_CARE' | 'PHARMACY' | 'CLINIC' | 'HOSPITAL' | 'EMERGENCY';
 export type WorkflowAction = 'SELF_CARE' | 'CALL_EMERGENCY_SERVICES' | 'PHARMACY' | 'CLINIC' | 'HOSPITAL';
 export interface WorkflowInput {
     sessionId: string;

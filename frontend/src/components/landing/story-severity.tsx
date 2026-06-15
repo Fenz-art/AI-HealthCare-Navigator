@@ -37,7 +37,7 @@ export function StorySeverity() {
     <StoryScene id="story-severity" dark>
       <div className="grid items-center gap-10 lg:grid-cols-2">
         <div>
-          <p className="text-sm font-medium text-[var(--compass-teal)]">
+          <p className="text-sm font-medium" style={{ color: "var(--lavender-hover)" }}>
             The routing engine
           </p>
           <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">

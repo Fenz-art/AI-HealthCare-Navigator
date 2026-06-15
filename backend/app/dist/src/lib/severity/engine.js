@@ -1,5 +1,5 @@
-import { SeverityOutputSchema } from './schema';
-import { executeWithRetryAndFallback, generateText } from '@/lib/ai/utils';
+import { SeverityOutputSchema } from './schema.js';
+import { executeWithRetryAndFallback, generateText } from '../ai/utils.js';
 export async function determineSeverity(symptoms, duration, allergies, currentMeds) {
     const prompt = `
 You are a Healthcare Navigation Agent for travelers. You DO NOT diagnose diseases.

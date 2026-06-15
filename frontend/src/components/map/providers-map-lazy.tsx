@@ -9,8 +9,11 @@ const ProvidersMap = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-52 items-center justify-center rounded-2xl bg-muted/40">
-        <Loader2 className="size-6 animate-spin text-[var(--compass-teal)]" />
+      <div
+        className="flex h-52 items-center justify-center"
+        style={{ background: "var(--surface-2)" }}
+      >
+        <Loader2 className="size-5 animate-spin" style={{ color: "var(--lavender)" }} />
       </div>
     ),
   }

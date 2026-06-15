@@ -8,11 +8,11 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 gsap.registerPlugin(ScrollTrigger);
 
 const CITIES = [
-  { name: "Tokyo", x: 82, y: 38, delay: 0 },
-  { name: "Mumbai", x: 68, y: 48, delay: 0.15 },
-  { name: "London", x: 48, y: 32, delay: 0.3 },
-  { name: "NYC", x: 28, y: 36, delay: 0.45 },
-  { name: "São Paulo", x: 34, y: 68, delay: 0.6 },
+  { name: "Tokyo",     x: 82, y: 38, delay: 0    },
+  { name: "Mumbai",    x: 68, y: 48, delay: 0.15 },
+  { name: "London",    x: 48, y: 32, delay: 0.3  },
+  { name: "NYC",       x: 28, y: 36, delay: 0.45 },
+  { name: "São Paulo", x: 34, y: 68, delay: 0.6  },
 ];
 
 export function WorldMap() {
@@ -68,7 +68,8 @@ export function WorldMap() {
     <svg
       ref={svgRef}
       viewBox="0 0 100 70"
-      className="h-full w-full text-[var(--compass-ocean)]/20"
+      /* surface-3 at low opacity for the land masses */
+      style={{ color: "rgba(26,26,31,0.6)" }}
       aria-hidden
     >
       <ellipse cx="50" cy="35" rx="46" ry="30" fill="currentColor" opacity="0.35" />
@@ -84,8 +85,9 @@ export function WorldMap() {
       />
       {CITIES.map((city) => (
         <g key={city.name} transform={`translate(${city.x} ${city.y})`}>
-          <circle className="map-dot" r="2.8" fill="var(--compass-teal)" opacity="0.9" />
-          <circle r="5" fill="var(--compass-teal)" opacity="0.15" />
+          {/* Lavender city dots */}
+          <circle className="map-dot" r="2.8" fill="#5e6ad2" opacity="0.9" />
+          <circle r="5" fill="#5e6ad2" opacity="0.15" />
         </g>
       ))}
     </svg>

@@ -1,0 +1,68 @@
+import type { CandidateStatus, MemoryType, Prisma } from '@prisma/client';
+export type CreateMemoryCandidateInput = {
+    userId: string;
+    sessionId?: string | null;
+    memoryType: MemoryType;
+    value: string;
+    source?: string;
+    confidence?: number;
+    context?: string | null;
+    status?: CandidateStatus;
+};
+export declare function createCandidate(data: CreateMemoryCandidateInput): Promise<{
+    userId: string;
+    value: string;
+    status: import(".prisma/client").$Enums.CandidateStatus;
+    sessionId: string | null;
+    id: string;
+    createdAt: Date;
+    confidence: number;
+    memoryType: import(".prisma/client").$Enums.MemoryType;
+    source: string;
+    context: string | null;
+    reviewedBy: string | null;
+    reviewedAt: Date | null;
+}>;
+export declare function createCandidates(data: CreateMemoryCandidateInput[]): Promise<Prisma.BatchPayload>;
+export declare function getUserCandidates(userId: string): Promise<{
+    userId: string;
+    value: string;
+    status: import(".prisma/client").$Enums.CandidateStatus;
+    sessionId: string | null;
+    id: string;
+    createdAt: Date;
+    confidence: number;
+    memoryType: import(".prisma/client").$Enums.MemoryType;
+    source: string;
+    context: string | null;
+    reviewedBy: string | null;
+    reviewedAt: Date | null;
+}[]>;
+export declare function approveCandidate(candidateId: string, reviewedByUserId: string): Promise<{
+    userId: string;
+    value: string;
+    status: import(".prisma/client").$Enums.CandidateStatus;
+    sessionId: string | null;
+    id: string;
+    createdAt: Date;
+    confidence: number;
+    memoryType: import(".prisma/client").$Enums.MemoryType;
+    source: string;
+    context: string | null;
+    reviewedBy: string | null;
+    reviewedAt: Date | null;
+}>;
+export declare function rejectCandidate(candidateId: string, reviewedByUserId: string): Promise<{
+    userId: string;
+    value: string;
+    status: import(".prisma/client").$Enums.CandidateStatus;
+    sessionId: string | null;
+    id: string;
+    createdAt: Date;
+    confidence: number;
+    memoryType: import(".prisma/client").$Enums.MemoryType;
+    source: string;
+    context: string | null;
+    reviewedBy: string | null;
+    reviewedAt: Date | null;
+}>;

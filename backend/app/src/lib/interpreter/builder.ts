@@ -1,5 +1,14 @@
 import { HealthDocument, HealthPassport, TravelHealthSession } from '@prisma/client';
 
+// Prisma schema stores array fields as JSON strings — parse gracefully
+function parseArr<T = string>(value: unknown): T[] {
+  if (Array.isArray(value)) return value as T[];
+  if (typeof value === 'string') {
+    try { return JSON.parse(value) as T[]; } catch { return []; }
+  }
+  return [];
+}
+
 export function buildInterpreterContext(
   session: TravelHealthSession,
   healthPassport: HealthPassport | null,
@@ -7,18 +16,25 @@ export function buildInterpreterContext(
 ): string {
   const parts: string[] = [];
 
+  const symptoms    = parseArr<string>(session.symptoms);
+  const allergies   = parseArr<string>(session.allergies);
+  const currentMeds = parseArr<string>(session.currentMeds);
+  const medRecs     = parseArr<any>(session.medRecs);
+  const providerRecs = parseArr<any>(session.providerRecs);
+  const includedDocuments = parseArr<string>(session.includedDocuments);
+
   parts.push(`Patient Location: ${session.location ?? 'Unknown'}`);
 
-  if (session.symptoms.length > 0) {
-    parts.push(`Symptoms:\n${session.symptoms.map((s: string) => `- ${s}`).join('\n')}`);
+  if (symptoms.length > 0) {
+    parts.push(`Symptoms:\n${symptoms.map((s) => `- ${s}`).join('\n')}`);
   }
 
-  if (session.allergies.length > 0) {
-    parts.push(`Symptoms-related Allergies:\n${session.allergies.map((a: string) => `- ${a}`).join('\n')}`);
+  if (allergies.length > 0) {
+    parts.push(`Allergies:\n${allergies.map((a) => `- ${a}`).join('\n')}`);
   }
 
-  if (session.currentMeds.length > 0) {
-    parts.push(`Current Medications:\n${session.currentMeds.map((m: string) => `- ${m}`).join('\n')}`);
+  if (currentMeds.length > 0) {
+    parts.push(`Current Medications:\n${currentMeds.map((m) => `- ${m}`).join('\n')}`);
   }
 
   if (session.includedPassport && healthPassport) {
@@ -28,49 +44,35 @@ export function buildInterpreterContext(
       passportLines.push(`Blood Group: ${healthPassport.bloodGroup}`);
     }
 
-    const passportAllergies = Array.isArray(healthPassport.allergies)
-      ? (healthPassport.allergies as string[])
-      : [];
-    const passportMedications = Array.isArray(healthPassport.currentMedications)
-      ? (healthPassport.currentMedications as string[])
-      : [];
-    const passportConditions = Array.isArray(healthPassport.chronicConditions)
-      ? (healthPassport.chronicConditions as string[])
-      : [];
-    const passportVaccinations = Array.isArray(healthPassport.vaccinations)
-      ? (healthPassport.vaccinations as string[])
-      : [];
-    const emergencyContacts = Array.isArray(healthPassport.emergencyContacts)
-      ? (healthPassport.emergencyContacts as { name: string; phone: string; relation?: string }[])
-      : [];
+    const passportAllergies   = parseArr<string>(healthPassport.allergies);
+    const passportMedications = parseArr<string>(healthPassport.currentMedications);
+    const passportConditions  = parseArr<string>(healthPassport.chronicConditions);
+    const passportVaccinations = parseArr<string>(healthPassport.vaccinations);
+    const emergencyContacts = parseArr<{ name: string; phone: string; relation?: string }>(
+      healthPassport.emergencyContacts
+    );
 
-    if (passportAllergies.length > 0) {
+    if (passportAllergies.length > 0)
       passportLines.push(`Passport Allergies:\n${passportAllergies.map((a) => `- ${a}`).join('\n')}`);
-    }
-    if (passportMedications.length > 0) {
+    if (passportMedications.length > 0)
       passportLines.push(`Passport Medications:\n${passportMedications.map((m) => `- ${m}`).join('\n')}`);
-    }
-    if (passportConditions.length > 0) {
+    if (passportConditions.length > 0)
       passportLines.push(`Chronic Conditions:\n${passportConditions.map((c) => `- ${c}`).join('\n')}`);
-    }
-    if (passportVaccinations.length > 0) {
+    if (passportVaccinations.length > 0)
       passportLines.push(`Vaccinations:\n${passportVaccinations.map((v) => `- ${v}`).join('\n')}`);
-    }
-    if (emergencyContacts.length > 0) {
+    if (emergencyContacts.length > 0)
       passportLines.push(
-        `Emergency Contacts:\n${emergencyContacts.map((contact) => `- ${contact.name} (${contact.relation ?? 'contact'}): ${contact.phone}`).join('\n')}`
+        `Emergency Contacts:\n${emergencyContacts
+          .map((c) => `- ${c.name} (${c.relation ?? 'contact'}): ${c.phone}`)
+          .join('\n')}`
       );
-    }
 
-    if (passportLines.length > 0) {
+    if (passportLines.length > 0)
       parts.push(`Health Passport:\n${passportLines.join('\n')}`);
-    }
   }
 
-  if (Array.isArray(session.includedDocuments)) {
-    const sharedIds = session.includedDocuments as string[];
-    const sharedDocs = healthDocuments.filter((doc) => sharedIds.includes(doc.id));
-
+  if (includedDocuments.length > 0) {
+    const sharedDocs = healthDocuments.filter((doc) => includedDocuments.includes(doc.id));
     if (sharedDocs.length > 0) {
       const docsText = sharedDocs
         .map((doc) => {
@@ -78,22 +80,19 @@ export function buildInterpreterContext(
           return `- ${doc.title} (${doc.type}${doc.sourceCountry ? `, ${doc.sourceCountry}` : ''})\n${text}`;
         })
         .join('\n\n');
-
       parts.push(`Shared Medical Documents:\n${docsText}`);
     }
   }
 
-  if (Array.isArray(session.medRecs) && session.medRecs.length > 0) {
-    const recs = session.medRecs as any[];
+  if (medRecs.length > 0) {
     parts.push(
-      `Recommended Medication:\n${recs.map((r) => `- ${r.brand.name} (${r.activeIngredient.name})`).join('\n')}`
+      `Recommended Medication:\n${medRecs.map((r) => `- ${r.brand?.name ?? r.name} (${r.activeIngredient?.name ?? ''})`).join('\n')}`
     );
   }
 
-  if (Array.isArray(session.providerRecs) && session.providerRecs.length > 0) {
-    const recs = session.providerRecs as any[];
+  if (providerRecs.length > 0) {
     parts.push(
-      `Recommended Provider:\n${recs.map((r) => `- ${r.name} (${r.address})`).join('\n')}`
+      `Recommended Provider:\n${providerRecs.map((r) => `- ${r.name} (${r.address})`).join('\n')}`
     );
   }
 

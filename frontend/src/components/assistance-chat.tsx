@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Loader2, Send } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -17,6 +17,10 @@ interface AssistanceChatProps {
   onRequestChange?: (hasRequested: boolean) => void;
 }
 
+/**
+ * NATURAL SPRINT — Assistance chat.
+ * Surface ladder. Lavender CTAs. No teal/slate.
+ */
 export function AssistanceChat({ sessionId, onRequestChange }: AssistanceChatProps) {
   const t = useTranslations('assistance');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -25,31 +29,25 @@ export function AssistanceChat({ sessionId, onRequestChange }: AssistanceChatPro
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Poll for messages
   useEffect(() => {
     if (!hasRequested) return;
-
     const fetchMessages = async () => {
       try {
         const res = await fetch(`/api/chat?sessionId=${sessionId}`);
         const { data } = await res.json();
         setMessages(data);
-      } catch (error) {
-        console.error('Failed to fetch messages:', error);
-      }
+      } catch {}
     };
-
     fetchMessages();
     const interval = setInterval(fetchMessages, 2000);
     return () => clearInterval(interval);
   }, [sessionId, hasRequested]);
 
-  // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleRequestAssistance = async () => {
+  const handleRequest = async () => {
     setIsLoading(true);
     try {
       const res = await fetch('/api/assistance', {
@@ -57,102 +55,110 @@ export function AssistanceChat({ sessionId, onRequestChange }: AssistanceChatPro
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId }),
       });
-
-      if (res.ok) {
-        setHasRequested(true);
-      }
-    } catch (error) {
-      console.error('Failed to request assistance:', error);
-    } finally {
-      setIsLoading(false);
-    }
+      if (res.ok) { setHasRequested(true); onRequestChange?.(true); }
+    } catch {}
+    finally { setIsLoading(false); }
   };
 
   const handleSend = async () => {
     if (!input.trim()) return;
-
     const message = input;
     setInput('');
-
     try {
       await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId, content: message, senderType: 'TRAVELER' }),
       });
-      
-      // Fetch updated messages
       const res = await fetch(`/api/chat?sessionId=${sessionId}`);
       const { data } = await res.json();
       setMessages(data);
-    } catch (error) {
-      console.error('Failed to send message:', error);
-    }
+    } catch {}
   };
 
   if (!hasRequested) {
     return (
-      <div className="flex flex-col items-center justify-center h-[60vh] p-6 text-center space-y-4">
-        <div className="text-5xl">🤝</div>
-        <h2 className="text-xl font-semibold text-slate-900">Need Human Help?</h2>
-        <p className="text-sm text-slate-500 max-w-xs">
-          Connect with a CareCompass assistant. They already know your symptoms, allergies, and location.
-        </p>
-        <Button 
-          className="bg-teal-600 hover:bg-teal-700 text-white px-8"
-          onClick={handleRequestAssistance}
+      <div className="flex flex-col items-center justify-center gap-5 px-6 py-16 text-center">
+        <div className="text-4xl">🤝</div>
+        <div>
+          <h2 className="text-[16px] font-semibold" style={{ color: "var(--ink)" }}>Need human help?</h2>
+          <p className="mt-1 text-[13px] max-w-xs" style={{ color: "var(--ink-subtle)" }}>
+            Connect with a CareCompass assistant. They already know your symptoms, allergies, and location.
+          </p>
+        </div>
+        <button
+          type="button"
+          className="btn-primary gap-2"
+          onClick={handleRequest}
           disabled={isLoading}
         >
-          {isLoading ? 'Requesting...' : 'Request Assistance'}
-        </Button>
+          {isLoading && <Loader2 className="size-3.5 animate-spin" />}
+          {isLoading ? 'Requesting…' : 'Request Assistance'}
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-[70vh] bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+    <div
+      className="flex h-[70vh] flex-col overflow-hidden rounded-md lifted-panel"
+      style={{ background: "var(--surface-1)" }}
+    >
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto space-y-2 p-4">
         {messages.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-slate-400 text-sm">
-            Waiting for an assistant to join...
+          <div className="flex h-full items-center justify-center text-[13px]" style={{ color: "var(--ink-tertiary)" }}>
+            Waiting for an assistant to join…
           </div>
         ) : (
-          <>
-            {messages.map((msg) => (
-              <div key={msg.id} className={`flex ${msg.senderType === 'TRAVELER' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] p-3 rounded-xl text-sm ${
-                  msg.senderType === 'TRAVELER' 
-                    ? 'bg-teal-600 text-white' 
-                    : msg.senderType === 'SYSTEM' 
-                    ? 'bg-slate-200 text-slate-700 italic' 
-                    : 'bg-white border border-slate-200 text-slate-900'
-                }`}>
-                  {msg.content}
-                </div>
+          messages.map((msg) => (
+            <div key={msg.id} className={`flex ${msg.senderType === 'TRAVELER' ? 'justify-end' : 'justify-start'}`}>
+              <div
+                className="max-w-[78%] rounded px-3 py-2 text-[13px]"
+                style={{
+                  background:
+                    msg.senderType === 'TRAVELER' ? 'var(--lavender)'
+                    : msg.senderType === 'SYSTEM'   ? 'var(--surface-3)'
+                    : 'var(--surface-2)',
+                  color:
+                    msg.senderType === 'TRAVELER' ? 'var(--inverse-ink)'
+                    : msg.senderType === 'SYSTEM'  ? 'var(--ink-tertiary)'
+                    : 'var(--ink-muted)',
+                  border: msg.senderType !== 'TRAVELER' ? '1px solid var(--hairline)' : 'none',
+                  fontStyle: msg.senderType === 'SYSTEM' ? 'italic' : 'normal',
+                }}
+              >
+                {msg.content}
               </div>
-            ))}
-            <div ref={messagesEndRef} />
-          </>
+            </div>
+          ))
         )}
+        <div ref={messagesEndRef} />
       </div>
-      
-      <div className="p-4 bg-white border-t border-slate-200">
-        <div className="flex gap-2">
-          <Input 
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Type a message..."
-            className="bg-slate-50 border-slate-200"
-          />
-          <Button 
-            onClick={handleSend} 
-            disabled={!input.trim()}
-            className="bg-teal-600 hover:bg-teal-700 text-white"
-          >
-            Send
-          </Button>
-        </div>
+
+      {/* Input row */}
+      <div className="flex gap-2 p-3" style={{ borderTop: "1px solid var(--hairline)" }}>
+        <Input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+          placeholder="Type a message…"
+          className="flex-1 text-[13px]"
+          style={{
+            background: "var(--surface-3)",
+            border: "1px solid var(--hairline)",
+            color: "var(--ink)",
+          }}
+        />
+        <button
+          type="button"
+          className="btn-primary gap-1.5"
+          onClick={handleSend}
+          disabled={!input.trim()}
+        >
+          <Send className="size-3.5" />
+          Send
+        </button>
       </div>
     </div>
   );

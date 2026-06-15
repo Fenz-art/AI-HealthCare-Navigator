@@ -1,9 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { Bell, Globe, Moon, Shield, User } from "lucide-react";
+import { motion } from "framer-motion";
+import {
+  Bell,
+  Globe,
+  Moon,
+  Shield,
+  User,
+  Palette,
+  Info,
+  LogOut,
+  ChevronRight,
+} from "lucide-react";
 import { PageHeader } from "@/components/os/page-header";
-import { cn } from "@/lib/utils";
 
 const SETTINGS_GROUPS = [
   {
@@ -12,6 +22,7 @@ const SETTINGS_GROUPS = [
     items: [
       { label: "Display name", value: "Alex Traveler", type: "text" as const },
       { label: "Email", value: "alex@example.com", type: "text" as const },
+      { label: "Phone", value: "+1 415-555-0142", type: "text" as const },
     ],
   },
   {
@@ -20,6 +31,7 @@ const SETTINGS_GROUPS = [
     items: [
       { label: "Home country", value: "United States", type: "select" as const },
       { label: "Preferred language", value: "English", type: "select" as const },
+      { label: "Interpreter language", value: "Japanese", type: "select" as const },
     ],
   },
   {
@@ -29,14 +41,16 @@ const SETTINGS_GROUPS = [
       { label: "Session updates", value: true, type: "toggle" as const },
       { label: "Severity changes", value: true, type: "toggle" as const },
       { label: "Outcome reminders", value: false, type: "toggle" as const },
+      { label: "Travel health alerts", value: true, type: "toggle" as const },
     ],
   },
   {
-    title: "Privacy",
+    title: "Privacy & Data",
     icon: Shield,
     items: [
       { label: "Share location during sessions", value: true, type: "toggle" as const },
       { label: "Anonymous outcome data", value: true, type: "toggle" as const },
+      { label: "Auto-translate documents", value: false, type: "toggle" as const },
     ],
   },
 ];
@@ -49,16 +63,15 @@ function Toggle({ defaultOn }: { defaultOn: boolean }) {
       role="switch"
       aria-checked={on}
       onClick={() => setOn(!on)}
-      className={cn(
-        "relative h-6 w-11 rounded-full transition-colors duration-200",
-        on ? "bg-[var(--cc-pharmacy)]" : "bg-[var(--cc-elevated)]"
-      )}
+      className="relative h-5 w-9 rounded-full transition-colors duration-150 focus-ring"
+      style={{ background: on ? "var(--lavender)" : "var(--surface-4)" }}
     >
       <span
-        className={cn(
-          "absolute top-0.5 size-5 rounded-full bg-white transition-transform duration-200",
-          on ? "translate-x-5" : "translate-x-0.5"
-        )}
+        className="absolute top-0.5 h-4 w-4 rounded-full transition-transform duration-150"
+        style={{
+          background: on ? "var(--inverse-ink)" : "var(--ink-tertiary)",
+          transform: on ? "translateX(18px)" : "translateX(2px)",
+        }}
       />
     </button>
   );
@@ -66,53 +79,143 @@ function Toggle({ defaultOn }: { defaultOn: boolean }) {
 
 export default function SettingsPage() {
   return (
-    <div className="mx-auto max-w-2xl space-y-8">
+    <div className="mx-auto max-w-2xl space-y-6">
       <PageHeader
         eyebrow="System"
         title="Settings"
         description="Preferences, privacy, and account — minimal, intentional, under your control."
       />
 
-      <div className="space-y-6">
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.05 } } }}
+        className="space-y-3"
+      >
         {SETTINGS_GROUPS.map((group) => {
           const Icon = group.icon;
           return (
-            <section key={group.title} className="cc-panel">
-              <div className="flex items-center gap-2 border-b hairline pb-4">
-                <Icon className="size-4 text-[var(--cc-text-secondary)]" />
-                <h2 className="text-sm font-semibold">{group.title}</h2>
+            <motion.section
+              key={group.title}
+              variants={{
+                hidden: { opacity: 0, y: 10 },
+                visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.22, 1, 0.36, 1] } },
+              }}
+              className="overflow-hidden rounded-xl border"
+              style={{ borderColor: "var(--hairline)", background: "var(--surface-1)" }}
+            >
+              {/* Section header */}
+              <div
+                className="flex items-center gap-2.5 px-5 py-3.5"
+                style={{ borderBottom: "1px solid var(--hairline)", background: "var(--surface-2)" }}
+              >
+                <Icon className="size-4" style={{ color: "var(--ink-tertiary)" }} />
+                <h2 className="text-[13px] font-semibold" style={{ color: "var(--ink-subtle)" }}>
+                  {group.title}
+                </h2>
               </div>
-              <div className="mt-2 divide-y hairline">
+
+              {/* Rows */}
+              <div className="divide-y" style={{ borderColor: "var(--hairline)" }}>
                 {group.items.map((item) => (
                   <div
                     key={item.label}
-                    className="flex items-center justify-between py-4 first:pt-2"
+                    className="flex items-center justify-between px-5 py-3.5 transition-colors hover:bg-[var(--surface-2)]"
                   >
-                    <span className="text-sm text-[var(--cc-text-secondary)]">
+                    <span className="text-[13px]" style={{ color: "var(--ink-subtle)" }}>
                       {item.label}
                     </span>
-                    {item.type === "toggle" ? (
-                      <Toggle defaultOn={item.value as boolean} />
-                    ) : (
-                      <span className="text-sm font-medium">{item.value as string}</span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {item.type === "toggle" ? (
+                        <Toggle defaultOn={item.value as boolean} />
+                      ) : (
+                        <>
+                          <span className="text-[13px] font-medium" style={{ color: "var(--ink-muted)" }}>
+                            {item.value as string}
+                          </span>
+                          <ChevronRight className="size-3.5" style={{ color: "var(--ink-tertiary)" }} />
+                        </>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
-            </section>
+            </motion.section>
           );
         })}
 
-        <section className="cc-panel">
-          <div className="flex items-center gap-2 border-b hairline pb-4">
-            <Moon className="size-4 text-[var(--cc-text-secondary)]" />
-            <h2 className="text-sm font-semibold">Appearance</h2>
+        {/* Appearance */}
+        <motion.section
+          variants={{
+            hidden: { opacity: 0, y: 10 },
+            visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.22, 1, 0.36, 1] } },
+          }}
+          className="overflow-hidden rounded-xl border"
+          style={{ borderColor: "var(--hairline)", background: "var(--surface-1)" }}
+        >
+          <div
+            className="flex items-center gap-2.5 px-5 py-3.5"
+            style={{ borderBottom: "1px solid var(--hairline)", background: "var(--surface-2)" }}
+          >
+            <Palette className="size-4" style={{ color: "var(--ink-tertiary)" }} />
+            <h2 className="text-[13px] font-semibold" style={{ color: "var(--ink-subtle)" }}>Appearance</h2>
           </div>
-          <p className="mt-4 text-sm text-[var(--cc-text-secondary)]">
-            Dark command center is optimized for operational focus. Light mode coming soon.
-          </p>
-        </section>
-      </div>
+          <div className="flex items-center justify-between px-5 py-3.5">
+            <span className="text-[13px]" style={{ color: "var(--ink-subtle)" }}>
+              Dark mode — optimized for operational focus
+            </span>
+            <span
+              className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-medium"
+              style={{ background: "rgba(39,166,68,0.1)", color: "var(--semantic-success)", border: "1px solid rgba(39,166,68,0.2)" }}
+            >
+              Active
+            </span>
+          </div>
+        </motion.section>
+
+        {/* About */}
+        <motion.section
+          variants={{
+            hidden: { opacity: 0, y: 10 },
+            visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.22, 1, 0.36, 1] } },
+          }}
+          className="overflow-hidden rounded-xl border"
+          style={{ borderColor: "var(--hairline)", background: "var(--surface-1)" }}
+        >
+          <div
+            className="flex items-center gap-2.5 px-5 py-3.5"
+            style={{ borderBottom: "1px solid var(--hairline)", background: "var(--surface-2)" }}
+          >
+            <Info className="size-4" style={{ color: "var(--ink-tertiary)" }} />
+            <h2 className="text-[13px] font-semibold" style={{ color: "var(--ink-subtle)" }}>About</h2>
+          </div>
+          <div className="divide-y" style={{ borderColor: "var(--hairline)" }}>
+            {[
+              { label: "Version", value: "0.1.0" },
+              { label: "Build", value: "2026.06.14" },
+            ].map((item) => (
+              <div key={item.label} className="flex items-center justify-between px-5 py-3.5">
+                <span className="text-[13px]" style={{ color: "var(--ink-subtle)" }}>{item.label}</span>
+                <span className="text-[13px] font-mono" style={{ color: "var(--ink-tertiary)" }}>{item.value}</span>
+              </div>
+            ))}
+          </div>
+        </motion.section>
+
+        {/* Log out */}
+        <motion.button
+          type="button"
+          variants={{
+            hidden: { opacity: 0 },
+            visible: { opacity: 1, transition: { duration: 0.3 } },
+          }}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border py-3 text-[13px] font-medium transition-colors"
+          style={{ borderColor: "var(--hairline)", color: "var(--semantic-red)" }}
+        >
+          <LogOut className="size-4" />
+          Sign out
+        </motion.button>
+      </motion.div>
     </div>
   );
 }

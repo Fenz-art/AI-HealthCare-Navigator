@@ -9,7 +9,6 @@ import { ProviderCard } from "@/components/product/provider-card";
 import { OutcomeCard } from "@/components/product/outcome-card";
 import Link from "next/link";
 import { Languages } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 type CommandCenterLayoutProps = {
   session: TravelHealthSession;
@@ -33,35 +32,54 @@ export function CommandCenterLayout({ session, locale = "en" }: CommandCenterLay
       />
 
       {showMap ? (
-        <div className="relative min-h-0 flex-[3] overflow-hidden rounded-2xl border hairline">
+        <div
+          className="relative min-h-0 flex-[3] overflow-hidden rounded-md"
+          style={{ border: "1px solid var(--hairline)" }}
+        >
           <ProvidersMapLazy
             lat={session.lat!}
             lng={session.lng!}
             providers={providers}
             className="absolute inset-0 h-full w-full"
           />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[var(--cc-bg)] to-transparent" />
         </div>
       ) : isSelfCare ? (
-        <div className="cc-panel flex flex-[3] flex-col items-center justify-center text-center">
-          <p className="font-display text-2xl font-bold">Rest and monitor</p>
-          <p className="mt-2 max-w-sm text-sm text-[var(--cc-text-secondary)]">
+        <div
+          className="lifted-panel flex flex-[3] flex-col items-center justify-center rounded-md p-8 text-center"
+          style={{ background: "var(--surface-1)" }}
+        >
+          <p
+            className="text-[18px] font-semibold tracking-tight"
+            style={{ color: "var(--ink)", letterSpacing: "-0.3px" }}
+          >
+            Rest and monitor
+          </p>
+          <p className="mt-2 max-w-sm text-[13px]" style={{ color: "var(--ink-subtle)" }}>
             Hydrate, rest, and watch for changes. Seek care if symptoms worsen.
           </p>
         </div>
       ) : null}
 
-      <div className="grid min-h-0 flex-[2] gap-3 overflow-y-auto sm:grid-cols-3">
+      <div className="grid min-h-0 flex-[2] gap-2 overflow-y-auto sm:grid-cols-3">
         {meds.length > 0 ? (
           <MedicationFlowCard medications={meds} />
         ) : (
-          <div className="cc-panel flex items-center justify-center text-sm text-[var(--cc-text-secondary)]">
+          <div
+            className="lifted-panel flex items-center justify-center rounded-md text-[13px]"
+            style={{ background: "var(--surface-1)", color: "var(--ink-tertiary)" }}
+          >
             No medication recommended
           </div>
         )}
 
-        <div className="cc-panel space-y-2 overflow-y-auto">
-          <p className="text-xs font-medium uppercase tracking-wider text-[var(--cc-text-secondary)]">
+        <div
+          className="lifted-panel space-y-2 overflow-y-auto rounded-md p-4"
+          style={{ background: "var(--surface-1)" }}
+        >
+          <p
+            className="text-[11px] font-semibold uppercase tracking-[0.14em]"
+            style={{ color: "var(--ink-tertiary)" }}
+          >
             Providers
           </p>
           {providers.length > 0 ? (
@@ -69,24 +87,31 @@ export function CommandCenterLayout({ session, locale = "en" }: CommandCenterLay
               <ProviderCard key={`${p.name}-${p.lat}`} provider={p} compact />
             ))
           ) : (
-            <p className="text-sm text-[var(--cc-text-secondary)]">None nearby</p>
+            <p className="text-[13px]" style={{ color: "var(--ink-tertiary)" }}>None nearby</p>
           )}
         </div>
 
-        <div className="cc-panel flex flex-col">
-          <p className="text-xs font-medium uppercase tracking-wider text-[var(--cc-text-secondary)]">
+        <div
+          className="lifted-panel flex flex-col rounded-md p-4"
+          style={{ background: "var(--surface-1)" }}
+        >
+          <p
+            className="text-[11px] font-semibold uppercase tracking-[0.14em]"
+            style={{ color: "var(--ink-tertiary)" }}
+          >
             Interpreter
           </p>
-          <p className="mt-2 line-clamp-4 flex-1 text-sm leading-relaxed text-[var(--cc-text-secondary)]">
+          <p
+            className="mt-2 line-clamp-4 flex-1 text-[13px] leading-relaxed"
+            style={{ color: "var(--ink-subtle)" }}
+          >
             {session.interpreterContext ?? "Available after workflow completes."}
           </p>
           <Link
             href={`/${locale}/app/session/${session.id}/interpreter`}
-            className={cn(
-              "mt-4 inline-flex h-10 items-center justify-center gap-2 rounded-full bg-[var(--cc-elevated)] text-sm font-medium transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--cc-elevated),white_6%)]"
-            )}
+            className="btn-secondary mt-4 gap-2"
           >
-            <Languages className="size-4" />
+            <Languages className="size-3.5" />
             Open interpreter
           </Link>
         </div>

@@ -23,25 +23,22 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
   return (
     <header
       className={cn(
-        "fixed inset-x-0 top-0 z-50 border-b backdrop-blur-xl",
-        isMarketing
-          ? "border-[var(--mk-border)] bg-[var(--mk-bg)]/85"
-          : "hairline bg-[var(--cc-bg)]/80"
+        "fixed inset-x-0 top-0 z-50 border-b",
+        isMarketing ? "bg-[var(--canvas)]/90" : "bg-[var(--canvas)]/80"
       )}
+      style={{ borderColor: "var(--hairline)", height: 56 }}
     >
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
+      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
         <Logo variant={isMarketing ? "marketing" : "default"} />
-        <nav className="hidden items-center gap-8 lg:flex">
+        <nav className="hidden items-center gap-7 lg:flex">
           {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className={cn(
-                "text-sm transition-colors duration-200",
-                isMarketing
-                  ? "text-[var(--mk-text-secondary)] hover:text-[var(--mk-text)]"
-                  : "text-[var(--cc-text-secondary)] hover:text-[var(--cc-text)]"
-              )}
+              className="text-[13px] transition-colors duration-200"
+              style={{ color: "var(--ink-subtle)" }}
+              onMouseEnter={(e) => ((e.target as HTMLAnchorElement).style.color = "var(--ink)")}
+              onMouseLeave={(e) => ((e.target as HTMLAnchorElement).style.color = "var(--ink-subtle)")}
             >
               {link.label}
             </Link>
@@ -50,23 +47,13 @@ export function SiteHeader({ variant = "default" }: SiteHeaderProps) {
         <div className="flex items-center gap-2">
           <Link
             href={`/${locale}/login`}
-            className={cn(
-              "hidden h-9 items-center rounded-full px-4 text-sm font-medium transition-colors duration-200 sm:inline-flex",
-              isMarketing
-                ? "text-[var(--mk-text-secondary)] hover:text-[var(--mk-text)]"
-                : "text-[var(--cc-text-secondary)] hover:text-[var(--cc-text)]"
-            )}
+            className="hidden h-8 items-center rounded-md px-3.5 text-[13px] font-medium transition-colors sm:inline-flex"
+            style={{ color: "var(--ink-muted)" }}
           >
             Sign in
           </Link>
-          <Link
-            href={`/${locale}/app/session/new`}
-            className={cn(
-              "inline-flex h-9 items-center rounded-full px-4 text-sm font-medium transition-all duration-200",
-              isMarketing ? "mk-btn-primary h-9 !px-5" : "btn-primary h-9 px-4 text-sm"
-            )}
-          >
-            Start session
+          <Link href={`/${locale}/signup`} className="mk-btn-primary h-8 px-3.5 text-[13px]">
+            Get started
           </Link>
         </div>
       </div>

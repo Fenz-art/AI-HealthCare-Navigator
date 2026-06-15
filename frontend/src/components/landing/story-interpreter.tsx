@@ -34,28 +34,49 @@ export function StoryInterpreter() {
   return (
     <StoryScene id="story-interpreter">
       <div className="grid items-center gap-10 lg:grid-cols-2">
-        <div ref={cardRef} className="card-elevated grid gap-3 rounded-3xl p-4 sm:grid-cols-2">
-          <div className="lang-panel surface-card p-5">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <div
+          ref={cardRef}
+          className="grid gap-3 rounded-xl p-4 sm:grid-cols-2 lifted-panel"
+          style={{ background: "var(--surface-1)" }}
+        >
+          {/* English panel */}
+          <div
+            className="lang-panel rounded-md p-5"
+            style={{ background: "var(--surface-2)", border: "1px solid var(--hairline)" }}
+          >
+            <p
+              className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em]"
+              style={{ color: "var(--ink-tertiary)" }}
+            >
               English
             </p>
-            <p className="text-sm leading-relaxed">
+            <p className="text-sm leading-relaxed" style={{ color: "var(--ink-subtle)" }}>
               I have had diarrhea and mild fever for two days. I am allergic to
               penicillin. I need over-the-counter relief.
             </p>
           </div>
-          <div className="lang-panel rounded-2xl border-2 border-[var(--compass-teal)]/30 bg-accent/50 p-5">
-            <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--compass-teal)]">
+          {/* Japanese panel */}
+          <div
+            className="lang-panel rounded-md p-5"
+            style={{
+              background: "var(--lavender-muted)",
+              border: "1px solid rgba(94,106,210,0.25)",
+            }}
+          >
+            <p
+              className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em]"
+              style={{ color: "var(--lavender-hover)" }}
+            >
               <Languages className="size-3.5" />
               Japanese
             </p>
-            <p className="text-sm leading-relaxed">
+            <p className="text-sm leading-relaxed" style={{ color: "var(--ink-muted)" }}>
               2日間、下痢と軽い発熱があります。ペニシリンアレルギーがあります。市販薬が必要です。
             </p>
           </div>
         </div>
         <div>
-          <p className="text-sm font-medium text-[var(--compass-teal)]">
+          <p className="text-sm font-medium" style={{ color: "var(--lavender-hover)" }}>
             Interpreter card
           </p>
           <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">

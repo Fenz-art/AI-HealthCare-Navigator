@@ -1,5 +1,5 @@
-import { SeverityOutputSchema, SeverityOutput } from './schema';
-import { executeWithRetryAndFallback, generateText } from '@/lib/ai/utils';
+import { SeverityOutputSchema, SeverityOutput } from './schema.js';
+import { executeWithRetryAndFallback, generateText } from '../ai/utils.js';
 
 export type SeverityResult = SeverityOutput;
 

@@ -1,4 +1,4 @@
-import { model } from '@/lib/ai/gemini';
+import { model } from '../ai/gemini.js';
 export async function translateAndExtractDocument(text, sourceLanguage) {
     const prompt = `
 You are a medical document translation and extraction assistant.

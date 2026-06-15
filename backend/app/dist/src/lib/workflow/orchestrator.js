@@ -1,37 +1,41 @@
-import { prisma } from '@/lib/db';
-import { determineSeverity } from '@/lib/severity/engine';
-import { extractActiveIngredients } from '@/lib/medications/extractor';
-import { findLocalEquivalents } from '@/lib/medications/repository';
-import { findNearbyProviders } from '@/lib/providers/geoapify';
-import { buildInterpreterContext } from '@/lib/interpreter/builder';
-import { getTargetLanguage, translateInterpreterContext } from '@/lib/interpreter/translator';
+import { prisma } from '../db.js';
+import { determineSeverity } from '../severity/engine.js';
+import { extractActiveIngredients } from '../medications/extractor.js';
+import { findLocalEquivalents } from '../medications/repository.js';
+import { findNearbyProviders } from '../providers/geoapify.js';
+import { buildInterpreterContext } from '../interpreter/builder.js';
+import { getTargetLanguage, translateInterpreterContext } from '../interpreter/translator.js';
+// Helper — parse a JSON-string field back to array
+function parseArr(value) {
+    if (Array.isArray(value))
+        return value;
+    if (typeof value === 'string') {
+        try {
+            return JSON.parse(value);
+        }
+        catch {
+            return [];
+        }
+    }
+    return [];
+}
 function severityToProviderType(severity) {
     switch (severity) {
-        case 'PHARMACY':
-            return 'PHARMACY';
-        case 'CLINIC':
-            return 'CLINIC';
+        case 'PHARMACY': return 'PHARMACY';
+        case 'CLINIC': return 'CLINIC';
         case 'HOSPITAL':
-        case 'EMERGENCY':
-            return 'HOSPITAL';
-        default:
-            return null;
+        case 'EMERGENCY': return 'HOSPITAL';
+        default: return null;
     }
 }
 function severityToAction(severity) {
     switch (severity) {
-        case 'SELF_CARE':
-            return 'SELF_CARE';
-        case 'EMERGENCY':
-            return 'CALL_EMERGENCY_SERVICES';
-        case 'PHARMACY':
-            return 'PHARMACY';
-        case 'CLINIC':
-            return 'CLINIC';
-        case 'HOSPITAL':
-            return 'HOSPITAL';
-        default:
-            return 'CLINIC';
+        case 'SELF_CARE': return 'SELF_CARE';
+        case 'EMERGENCY': return 'CALL_EMERGENCY_SERVICES';
+        case 'PHARMACY': return 'PHARMACY';
+        case 'CLINIC': return 'CLINIC';
+        case 'HOSPITAL': return 'HOSPITAL';
+        default: return 'CLINIC';
     }
 }
 function dedupeMedications(meds) {
@@ -53,20 +57,23 @@ export async function executeWorkflow(input) {
                 include: {
                     healthPassport: true,
                     healthDocuments: true,
-                }
-            }
-        }
+                },
+            },
+        },
     });
-    if (!session) {
+    if (!session)
         throw new Error('Session not found');
-    }
     const countryCode = input.countryCode.toUpperCase();
-    const severityResult = await determineSeverity(session.symptoms ?? [], session.duration ?? 'Unknown', session.allergies ?? [], session.currentMeds ?? []);
+    // Deserialise JSON-string fields
+    const symptoms = parseArr(session.symptoms);
+    const allergies = parseArr(session.allergies);
+    const currentMeds = parseArr(session.currentMeds);
+    const severityResult = await determineSeverity(symptoms, session.duration ?? 'Unknown', allergies, currentMeds);
     const action = severityToAction(severityResult.severity);
     let medRecs = [];
     let providerRecs = [];
     if (severityResult.severity === 'PHARMACY') {
-        const activeIngredients = await extractActiveIngredients(session.symptoms);
+        const activeIngredients = await extractActiveIngredients(symptoms);
         for (const ingredient of activeIngredients) {
             const equivalents = await findLocalEquivalents(ingredient, countryCode);
             medRecs.push(...equivalents);
@@ -77,31 +84,26 @@ export async function executeWorkflow(input) {
     else if (severityResult.severity === 'CLINIC') {
         providerRecs = await findNearbyProviders(input.lat, input.lng, 'CLINIC');
     }
-    else if (severityResult.severity === 'HOSPITAL' ||
-        severityResult.severity === 'EMERGENCY') {
+    else if (severityResult.severity === 'HOSPITAL' || severityResult.severity === 'EMERGENCY') {
         providerRecs = await findNearbyProviders(input.lat, input.lng, 'HOSPITAL');
     }
-    const sessionWithRecs = {
-        ...session,
-        severity: severityResult.severity,
-        medRecs,
-        providerRecs,
-        location: session.location ?? undefined
-    };
-    const interpreterContext = buildInterpreterContext(sessionWithRecs, session.user?.healthPassport ?? null, session.user?.healthDocuments ?? []);
+    // Build interpreter context (builder accepts raw session but reads fields via parseArr internally)
+    const sessionForContext = { ...session, medRecs, providerRecs };
+    const interpreterContext = buildInterpreterContext(sessionForContext, session.user?.healthPassport ?? null, session.user?.healthDocuments ?? []);
     const interpreterContextTranslated = await translateInterpreterContext(interpreterContext, countryCode);
+    // Persist results — stored as JSON strings
     await prisma.travelHealthSession.update({
         where: { id: input.sessionId },
         data: {
             severity: severityResult.severity,
             lat: input.lat,
             lng: input.lng,
-            medRecs: medRecs.length > 0 ? medRecs : undefined,
-            providerRecs: providerRecs.length > 0 ? providerRecs : undefined,
+            medRecs: medRecs.length > 0 ? JSON.stringify(medRecs) : undefined,
+            providerRecs: providerRecs.length > 0 ? JSON.stringify(providerRecs) : undefined,
             interpreterContext,
             interpreterContextTranslated,
-            country: { connect: { code: countryCode } }
-        }
+            country: { connect: { code: countryCode } },
+        },
     });
     return {
         sessionId: input.sessionId,
@@ -111,7 +113,7 @@ export async function executeWorkflow(input) {
         providers: providerRecs,
         interpreterContext,
         interpreterContextTranslated,
-        targetLanguage: getTargetLanguage(countryCode)
+        targetLanguage: getTargetLanguage(countryCode),
     };
 }
 export { severityToProviderType };

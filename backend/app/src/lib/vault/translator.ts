@@ -1,4 +1,4 @@
-import { model } from '@/lib/ai/gemini';
+import { model } from '../ai/gemini.js';
 
 interface VaultTranslationResult {
   englishTranslation: string;

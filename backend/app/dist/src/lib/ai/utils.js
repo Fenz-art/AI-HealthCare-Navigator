@@ -1,4 +1,4 @@
-import { model } from '@/lib/ai/gemini';
+import { model } from './gemini.js';
 const MAX_RETRIES = 2;
 export async function generateText(prompt) {
     const result = await model.generateContent(prompt);

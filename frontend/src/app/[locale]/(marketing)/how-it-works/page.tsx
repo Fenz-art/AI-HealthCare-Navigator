@@ -1,65 +1,116 @@
-import type { Metadata } from "next";
+"use client";
 
-export const metadata: Metadata = {
-  title: "How it works",
-};
+import { SmoothScrollProvider } from "@/components/landing/smooth-scroll-provider";
+import {
+  DetectDemo,
+  LocateDemo,
+  NavigateDemo,
+  ResolveDemo,
+  TranslateDemo,
+} from "@/components/story/pipeline-demos";
+import { NarrativeSection } from "@/components/marketing/narrative-section";
+import { DemoCard } from "@/components/story/demo-card";
+import { MarketingFooter } from "@/components/story/marketing-footer";
+import { useLocale } from "next-intl";
 
-const steps = [
+const STEPS = [
   {
-    stage: "01",
-    label: "DETECT",
-    title: "Assess Severity & Context",
-    body: "Describe your symptoms in plain language. Our system maps them against active ingredients, allergies, and emergency signals — establishing security before you spiral.",
+    eyebrow: "01 · Traveler gets sick",
+    title: "Symptoms arrive in an unfamiliar city.",
+    description:
+      "You describe what you feel once. CareCompass captures context — location, language, medications — before panic sets in.",
+    demo: <DetectDemo />,
   },
   {
-    stage: "02",
-    label: "NAVIGATE",
-    title: "Medication Cross-Mapping",
-    body: "We identify equivalent local brand names, chemical equivalents, and matching active ingredients for your current medicines in the host country.",
+    eyebrow: "02 · Symptoms become uncertainty",
+    title: "The hardest part is not knowing what to do next.",
+    description:
+      "Severity engine routes you to self-care, pharmacy, clinic, or hospital. No diagnosis — only the next safe step.",
+    demo: (
+      <DemoCard eyebrow="Uncertainty resolved" title="Severity: moderate · pharmacy route" subtitle="Confidence before you leave the hotel">
+        <div className="space-y-3 font-mono text-xs">
+          {["Nausea + fever cluster detected", "No emergency signals", "Route: OTC + hydration + pharmacy"].map(
+            (line) => (
+              <p key={line} style={{ color: "var(--ink-muted)" }}>
+                → {line}
+              </p>
+            )
+          )}
+        </div>
+      </DemoCard>
+    ),
+    reverse: true,
   },
   {
-    stage: "03",
-    label: "LOCATE",
-    title: "Geo-Ranked Providers",
-    body: "Locate pharmacies, clinics, and severity-appropriate hospitals within walking distance. View distances, directions, and real-time open status.",
+    eyebrow: "03 · AI determines next step",
+    title: "One agent orchestrates the entire path.",
+    description:
+      "Medication lookup, provider search, and interpreter prep run in parallel — like Linear agents executing tasks.",
+    demo: <NavigateDemo />,
   },
   {
-    stage: "04",
-    label: "TRANSLATE",
-    title: "Medical Interpreter Card",
-    body: "A dual-language card is prepared with your precise symptoms and details translated into the local language. Show it directly to the pharmacist or clinician.",
+    eyebrow: "04 · Medication equivalents found",
+    title: "Your prescription. Their brand names.",
+    description:
+      "Active ingredient graph maps Metformin, Loperamide, and 30+ molecules to local equivalents across 20 countries.",
+    demo: <NavigateDemo />,
+    reverse: true,
   },
   {
-    stage: "05",
-    label: "RESOLVE",
-    title: "Strengthen Travel Memory",
-    body: "Your outcome is saved to your personal Health Passport and Vault, compounding your health intelligence for any future journeys.",
+    eyebrow: "05 · Provider located",
+    title: "Care you can walk to.",
+    description:
+      "Geo-ranked pharmacies and clinics. Severity-matched facility type. Directions and open status ready.",
+    demo: <LocateDemo />,
+  },
+  {
+    eyebrow: "06 · Interpreter activated",
+    title: "Break the language barrier at the counter.",
+    description:
+      "Medical-grade dual-language card. Voice interpreter with patient context always visible to the provider.",
+    demo: <TranslateDemo />,
+    reverse: true,
+  },
+  {
+    eyebrow: "07 · Outcome recorded",
+    title: "Every session strengthens your health memory.",
+    description:
+      "Outcomes feed vault, passport, and travel timeline — compounding intelligence for your next journey.",
+    demo: <ResolveDemo />,
   },
 ];
 
 export default function HowItWorksPage() {
+  const locale = useLocale();
+
   return (
-    <div className="mx-auto max-w-4xl px-4 py-20 sm:px-6">
-      <div className="text-center max-w-2xl mx-auto mb-16">
-        <p className="mk-label mb-3">Core Engine</p>
-        <h1 className="mk-headline">Five stages. One agent. Zero guesswork.</h1>
-        <p className="mk-subhead mt-5">
-          CareCompass is built for travelers who need direction, not diagnosis. Here is how your travel companion handles the chaos.
-        </p>
-      </div>
-      <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 mt-12">
-        {steps.map((step) => (
-          <div key={step.title} className="rounded-2xl border bg-[var(--mk-surface)] p-6 shadow-sm border-[var(--mk-border-strong)] flex flex-col justify-between">
-            <div>
-              <span className="text-xs font-semibold text-[var(--mk-accent)] tracking-wider block mb-4">
-                {step.stage} · {step.label}
-              </span>
-              <h2 className="text-lg font-bold text-[var(--mk-text)]">{step.title}</h2>
-              <p className="mt-3 text-sm leading-relaxed text-[var(--mk-text-secondary)]">{step.body}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
+    <SmoothScrollProvider>
+      <section className="border-b px-4 pb-16 pt-28 sm:px-6 sm:pb-24 sm:pt-32" style={{ borderColor: "var(--hairline)" }}>
+        <div className="mx-auto max-w-3xl text-center">
+          <p className="mk-label">Core engine</p>
+          <h1 className="mk-display-xl mt-6 text-[2.5rem] sm:text-[3.5rem]">
+            Seven stages. One operating system.
+          </h1>
+          <p className="mk-subhead mx-auto mt-6 max-w-xl">
+            CareCompass follows the same narrative rhythm as the product — story, preview, story, preview —
+            until the traveler reaches care with confidence.
+          </p>
+        </div>
+      </section>
+
+      {STEPS.map((step) => (
+        <NarrativeSection
+          key={step.eyebrow}
+          eyebrow={step.eyebrow}
+          title={step.title}
+          description={step.description}
+          reverse={step.reverse}
+        >
+          {step.demo}
+        </NarrativeSection>
+      ))}
+
+      <MarketingFooter locale={locale} />
+    </SmoothScrollProvider>
   );
 }

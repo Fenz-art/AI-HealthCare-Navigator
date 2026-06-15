@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *.db
 .env
+.env.local
+env.txt
+frontend/.env.local
+backend/app/.env
 
 # Ignore environment example files
 .env.example

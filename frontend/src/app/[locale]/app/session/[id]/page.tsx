@@ -32,16 +32,19 @@ export default function SessionCommandCenterPage() {
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <Loader2 className="size-8 animate-spin text-[var(--cc-pharmacy)]" />
+        <Loader2 className="size-6 animate-spin" style={{ color: "var(--lavender)" }} />
       </div>
     );
   }
 
   if (error || !session) {
     return (
-      <div className="cc-panel text-center">
-        <p className="font-display text-lg font-bold">Session unavailable</p>
-        <p className="mt-2 text-sm text-[var(--cc-text-secondary)]">
+      <div
+        className="lifted-panel mx-auto max-w-sm rounded-md p-6 text-center"
+        style={{ background: "var(--surface-1)" }}
+      >
+        <p className="text-[15px] font-semibold" style={{ color: "var(--ink)" }}>Session unavailable</p>
+        <p className="mt-1.5 text-[13px]" style={{ color: "var(--ink-subtle)" }}>
           {error ?? "Session not found."}
         </p>
       </div>

@@ -1,4 +1,4 @@
-import { generateText } from '@/lib/ai/utils';
+import { generateText } from '../ai/utils.js';
 const languageMap = {
     US: 'English',
     IN: 'Hindi',

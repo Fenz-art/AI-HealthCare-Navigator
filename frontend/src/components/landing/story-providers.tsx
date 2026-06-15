@@ -38,37 +38,84 @@ export function StoryProviders() {
     <StoryScene id="story-providers" className="bg-muted/30">
       <div className="grid items-center gap-10 lg:grid-cols-2">
         <div>
-          <p className="text-sm font-medium text-[var(--compass-teal)]">
+          <p
+            className="text-sm font-medium"
+            style={{ color: "var(--lavender-hover)" }}
+          >
             Nearby care
           </p>
           <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
             See pharmacies and clinics on a map.
           </h2>
-          <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
-            Ranked for your situation, with directions one tap away — like a ride
-            request card, but for healthcare.
+          <p
+            className="mt-4 text-lg leading-relaxed"
+            style={{ color: "var(--ink-subtle)" }}
+          >
+            Ranked for your situation, with directions one tap away — like a
+            ride request card, but for healthcare.
           </p>
         </div>
-        <div ref={mapRef} className="card-elevated overflow-hidden rounded-3xl">
-          <div className="relative h-44 bg-[color-mix(in_srgb,var(--compass-ocean)_8%,white)]">
-            <div className="absolute left-1/2 top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--compass-ocean)] ring-4 ring-[var(--compass-ocean)]/20" />
-            <div className="absolute left-[30%] top-[35%] size-2.5 rounded-full bg-[var(--compass-teal)]" />
-            <div className="absolute right-[28%] top-[55%] size-2.5 rounded-full bg-[var(--compass-teal)]" />
+        <div
+          ref={mapRef}
+          className="overflow-hidden rounded-xl lifted-panel"
+          style={{ background: "var(--surface-1)" }}
+        >
+          {/* Mini map mockup */}
+          <div
+            className="relative h-44"
+            style={{
+              background: "var(--surface-3)",
+              borderBottom: "1px solid var(--hairline)",
+            }}
+          >
+            {/* User dot */}
+            <div
+              className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full animate-provider-pulse"
+              style={{ background: "var(--lavender)" }}
+            />
+            {/* Provider dots */}
+            <div
+              className="absolute left-[30%] top-[35%] h-2.5 w-2.5 rounded-full"
+              style={{ background: "var(--lavender-hover)" }}
+            />
+            <div
+              className="absolute right-[28%] top-[55%] h-2.5 w-2.5 rounded-full"
+              style={{ background: "var(--lavender-hover)" }}
+            />
           </div>
-          <div className="divide-y divide-border p-2">
+          <div
+            className="divide-y p-2"
+            style={{ borderColor: "var(--hairline)" }}
+          >
             {PROVIDERS.map((provider) => (
               <div
                 key={provider.name}
                 className="flex items-center justify-between gap-3 px-3 py-3"
               >
                 <div className="flex items-center gap-3">
-                  <MapPin className="size-4 text-[var(--compass-teal)]" />
+                  <MapPin
+                    className="size-4"
+                    style={{ color: "var(--lavender-hover)" }}
+                  />
                   <div>
-                    <p className="text-sm font-medium">{provider.name}</p>
-                    <p className="text-xs text-muted-foreground">{provider.type}</p>
+                    <p
+                      className="text-sm font-medium"
+                      style={{ color: "var(--ink)" }}
+                    >
+                      {provider.name}
+                    </p>
+                    <p
+                      className="text-xs"
+                      style={{ color: "var(--ink-tertiary)" }}
+                    >
+                      {provider.type}
+                    </p>
                   </div>
                 </div>
-                <span className="text-xs text-muted-foreground">
+                <span
+                  className="text-xs font-mono"
+                  style={{ color: "var(--ink-subtle)" }}
+                >
                   {provider.distance}
                 </span>
               </div>

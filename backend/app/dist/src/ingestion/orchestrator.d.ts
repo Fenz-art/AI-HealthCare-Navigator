@@ -1,0 +1,46 @@
+import { IngestionSourceType, IngestionResult } from './sources.js';
+export declare function ensureDataSourcesExist(): Promise<void>;
+export declare function runIngestion(sourceType: IngestionSourceType): Promise<IngestionResult>;
+export declare function runAllIngestions(): Promise<Record<IngestionSourceType, IngestionResult>>;
+export declare function findMedicationEquivalents(ingredient: string, countryCode: string): Promise<{
+    id: string;
+    country: string;
+    sourceId: string;
+    sourceType: string;
+    brandName: string;
+    ingredient: string;
+    strength: string | null;
+    otc: boolean | null;
+    route: string | null;
+    manufacturer: string | null;
+    meta: string | null;
+    importedAt: Date;
+}[]>;
+export declare function findMedicationByBrand(brandName: string, countryCode?: string): Promise<{
+    id: string;
+    country: string;
+    sourceId: string;
+    sourceType: string;
+    brandName: string;
+    ingredient: string;
+    strength: string | null;
+    otc: boolean | null;
+    route: string | null;
+    manufacturer: string | null;
+    meta: string | null;
+    importedAt: Date;
+}[]>;
+export declare function searchMedicationGlobally(query: string): Promise<{
+    id: string;
+    country: string;
+    sourceId: string;
+    sourceType: string;
+    brandName: string;
+    ingredient: string;
+    strength: string | null;
+    otc: boolean | null;
+    route: string | null;
+    manufacturer: string | null;
+    meta: string | null;
+    importedAt: Date;
+}[]>;

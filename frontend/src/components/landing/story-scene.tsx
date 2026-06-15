@@ -54,9 +54,10 @@ export function StoryScene({
       id={id}
       className={cn(
         "relative overflow-hidden py-20 sm:py-28",
-        dark ? "bg-[var(--compass-ocean)] text-white" : "bg-background",
+        dark ? "text-white" : "bg-background",
         className
       )}
+      style={dark ? { background: "var(--surface-1)" } : undefined}
     >
       <div ref={contentRef} className="mx-auto max-w-6xl px-4 sm:px-6">
         {children}

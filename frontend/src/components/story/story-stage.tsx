@@ -70,7 +70,8 @@ export function StoryStage({
   return (
     <section
       ref={sectionRef}
-      className={cn("border-t mk-hairline py-20 sm:py-28", className)}
+      className={cn("border-t py-20 sm:py-28", className)}
+      style={{ borderColor: "var(--hairline)" }}
     >
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div ref={copyRef} className="mb-10 max-w-2xl lg:mb-14">

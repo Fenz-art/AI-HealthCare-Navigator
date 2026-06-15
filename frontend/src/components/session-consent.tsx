@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 
 interface ConsentProps {
   passportExists: boolean;
@@ -10,71 +8,99 @@ interface ConsentProps {
   onAccept: (data: { includePassport: boolean; includedDocuments: string[] }) => void;
 }
 
+/**
+ * NATURAL SPRINT — Session consent screen.
+ * Surface ladder. Hairline borders. Lavender include buttons.
+ */
 export function SessionConsent({ passportExists, documents, onAccept }: ConsentProps) {
   const [includePassport, setIncludePassport] = useState(false);
   const [selectedDocs, setSelectedDocs] = useState<string[]>([]);
 
-  const toggleDoc = (id: string) => {
-    setSelectedDocs((prev) =>
-      prev.includes(id) ? prev.filter((docId) => docId !== id) : [...prev, id]
-    );
+  const toggleDoc = (id: string) =>
+    setSelectedDocs((prev) => prev.includes(id) ? prev.filter((d) => d !== id) : [...prev, id]);
+
+  const rowStyle = {
+    background: "var(--surface-2)",
+    border: "1px solid var(--hairline)",
+    borderTopColor: "rgba(255,255,255,0.06)",
   };
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <h1 className="text-2xl font-semibold">Consent for Health Session</h1>
-        <p className="text-sm text-slate-600">
-          Select the data you want to share with CareCompass for this session. Your travel passport and documents remain private until you choose to include them.
+    <div className="space-y-5">
+      <div>
+        <h1 className="text-[22px] font-semibold tracking-tight" style={{ color: "var(--ink)", letterSpacing: "-0.4px" }}>
+          Consent for health session
+        </h1>
+        <p className="mt-1.5 text-[13px] leading-relaxed" style={{ color: "var(--ink-subtle)" }}>
+          Choose what CareCompass can access for this session. Your passport and documents stay private until you include them.
         </p>
       </div>
 
       {passportExists && (
-        <Card className="border-slate-200 shadow-sm">
-          <CardContent className="flex items-center justify-between gap-4 p-5">
-            <div>
-              <p className="font-semibold text-slate-900">Travel Health Passport</p>
-              <p className="text-sm text-slate-500">Share your allergen, medication, and emergency contact summary.</p>
-            </div>
-            <Button
-              variant={includePassport ? "default" : "outline"}
-              onClick={() => setIncludePassport((value) => !value)}
-            >
-              {includePassport ? "Included" : "Include"}
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="flex items-center justify-between rounded-md p-4" style={rowStyle}>
+          <div>
+            <p className="text-[13px] font-semibold" style={{ color: "var(--ink)" }}>Travel Health Passport</p>
+            <p className="mt-0.5 text-[12px]" style={{ color: "var(--ink-subtle)" }}>
+              Allergies, medications, and emergency contacts.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIncludePassport((v) => !v)}
+            className="rounded px-3 py-1.5 text-[12px] font-semibold transition-colors duration-100"
+            style={{
+              background: includePassport ? "var(--lavender)" : "var(--surface-3)",
+              color: includePassport ? "var(--inverse-ink)" : "var(--ink-subtle)",
+              border: `1px solid ${includePassport ? "var(--lavender)" : "var(--hairline)"}`,
+            }}
+          >
+            {includePassport ? "Included ✓" : "Include"}
+          </button>
+        </div>
       )}
 
       {documents.length > 0 ? (
-        <div className="space-y-3">
-          <p className="text-sm font-medium text-slate-700">Health Documents</p>
-          {documents.map((doc) => (
-            <Card key={doc.id} className="border-slate-200 shadow-sm">
-              <CardContent className="flex items-center justify-between gap-4 p-5">
-                <div>
-                  <p className="font-medium text-slate-900">{doc.title}</p>
-                  <p className="text-sm text-slate-500">Choose this document to share in the session.</p>
-                </div>
-                <Button
-                  variant={selectedDocs.includes(doc.id) ? "default" : "outline"}
+        <div className="space-y-1.5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--ink-tertiary)" }}>
+            Health Documents
+          </p>
+          {documents.map((doc) => {
+            const included = selectedDocs.includes(doc.id);
+            return (
+              <div key={doc.id} className="flex items-center justify-between rounded-md p-3" style={rowStyle}>
+                <p className="text-[13px]" style={{ color: "var(--ink-muted)" }}>{doc.title}</p>
+                <button
+                  type="button"
                   onClick={() => toggleDoc(doc.id)}
+                  className="rounded px-3 py-1.5 text-[12px] font-semibold transition-colors duration-100"
+                  style={{
+                    background: included ? "var(--lavender)" : "var(--surface-3)",
+                    color: included ? "var(--inverse-ink)" : "var(--ink-subtle)",
+                    border: `1px solid ${included ? "var(--lavender)" : "var(--hairline)"}`,
+                  }}
                 >
-                  {selectedDocs.includes(doc.id) ? "Shared" : "Share"}
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+                  {included ? "Shared ✓" : "Share"}
+                </button>
+              </div>
+            );
+          })}
         </div>
       ) : (
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-          <p className="text-sm text-slate-600">No uploaded health documents are available yet. Upload files in the Health Vault to include them in a session.</p>
+        <div
+          className="rounded-md p-4 text-[13px]"
+          style={{ background: "var(--surface-2)", border: "1px dashed var(--hairline-strong)", color: "var(--ink-subtle)" }}
+        >
+          No health documents yet. Upload files in the Health Vault to include them in sessions.
         </div>
       )}
 
-      <Button className="w-full" onClick={() => onAccept({ includePassport, includedDocuments: selectedDocs })}>
+      <button
+        type="button"
+        className="btn-primary w-full"
+        onClick={() => onAccept({ includePassport, includedDocuments: selectedDocs })}
+      >
         Continue to session
-      </Button>
+      </button>
     </div>
   );
 }

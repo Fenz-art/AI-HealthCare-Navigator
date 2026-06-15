@@ -8,9 +8,13 @@ import { ArrowLeft, Loader2, Mic, Stethoscope, User } from "lucide-react";
 import { api, ApiClientError } from "@/lib/api";
 import type { InterpreterResponse } from "@/lib/types";
 import { InterpreterWave } from "@/components/product/interpreter-wave";
-import { motion as motionTokens } from "@/lib/motion";
+import { osVariants } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
+/**
+ * NATURAL SPRINT — Session interpreter view.
+ * Dark dual-pane. Lavender PTT button. Hairline borders.
+ */
 export default function InterpreterPage() {
   const params = useParams<{ id: string; locale: string }>();
   const [data, setData] = useState<InterpreterResponse | null>(null);
@@ -20,64 +24,74 @@ export default function InterpreterPage() {
   const [mode, setMode] = useState<"traveler" | "provider">("traveler");
 
   useEffect(() => {
-    async function loadInterpreter() {
+    async function load() {
       try {
-        const response = await api.getInterpreter(params.id);
-        setData(response);
+        setData(await api.getInterpreter(params.id));
       } catch (err) {
-        setError(
-          err instanceof ApiClientError ? err.message : "Unable to load interpreter."
-        );
+        setError(err instanceof ApiClientError ? err.message : "Unable to load interpreter.");
       } finally {
         setLoading(false);
       }
     }
-    loadInterpreter();
+    load();
   }, [params.id]);
 
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <Loader2 className="size-8 animate-spin text-[var(--cc-pharmacy)]" />
+        <Loader2 className="size-5 animate-spin" style={{ color: "var(--lavender)" }} />
       </div>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="cc-panel text-center text-[var(--cc-emergency)]">
-        {error ?? "Interpreter unavailable."}
+      <div
+        className="lifted-panel mx-auto max-w-sm rounded-md p-5 text-center"
+        style={{ background: "var(--surface-1)" }}
+      >
+        <p className="text-[13px]" style={{ color: "var(--semantic-red)" }}>
+          {error ?? "Interpreter unavailable."}
+        </p>
       </div>
     );
   }
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: motionTokens.normal, ease: motionTokens.ease }}
-      className="mx-auto flex h-full max-w-5xl flex-col gap-5"
+      variants={osVariants}
+      initial="hidden"
+      animate="visible"
+      className="mx-auto flex h-full max-w-4xl flex-col gap-4"
     >
+      {/* Back + mode toggle */}
       <div className="flex items-center justify-between">
         <Link
           href={`/${params.locale}/app/session/${params.id}`}
-          className="inline-flex items-center gap-2 text-sm text-[var(--cc-text-secondary)] transition-colors hover:text-[var(--cc-text)]"
+          className="inline-flex items-center gap-1.5 text-[13px] transition-colors duration-100"
+          style={{ color: "var(--ink-tertiary)" }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--ink-subtle)")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "var(--ink-tertiary)")}
         >
-          <ArrowLeft className="size-4" />
+          <ArrowLeft className="size-3.5" />
           Back to session
         </Link>
-        <div className="flex rounded-full border hairline p-0.5">
+
+        {/* Mode tabs */}
+        <div
+          className="flex rounded p-0.5"
+          style={{ background: "var(--surface-2)", border: "1px solid var(--hairline)" }}
+        >
           {(["traveler", "provider"] as const).map((m) => (
             <button
               key={m}
               type="button"
               onClick={() => setMode(m)}
-              className={cn(
-                "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium capitalize transition-colors duration-200",
-                mode === m
-                  ? "bg-[var(--cc-elevated)] text-[var(--cc-text)]"
-                  : "text-[var(--cc-text-secondary)]"
-              )}
+              className="flex items-center gap-1.5 rounded px-3 py-1 text-[12px] font-medium capitalize transition-colors duration-100"
+              style={{
+                background: mode === m ? "var(--surface-4)" : "transparent",
+                color: mode === m ? "var(--ink)" : "var(--ink-tertiary)",
+              }}
             >
               {m === "traveler" ? <User className="size-3" /> : <Stethoscope className="size-3" />}
               {m}
@@ -86,10 +100,18 @@ export default function InterpreterPage() {
         </div>
       </div>
 
-      <div className="cc-glow overflow-hidden rounded-3xl border hairline">
-        <div className="border-b hairline bg-[var(--cc-surface)] px-6 py-8">
+      {/* Main panel */}
+      <div
+        className="lifted-panel flex-1 overflow-hidden rounded-md"
+        style={{ background: "var(--surface-1)" }}
+      >
+        {/* Voice zone */}
+        <div
+          className="px-6 py-7"
+          style={{ borderBottom: "1px solid var(--hairline)", background: "var(--surface-2)" }}
+        >
           <InterpreterWave active={pushing} />
-          <div className="mt-6 flex justify-center">
+          <div className="mt-5 flex justify-center">
             <button
               type="button"
               onMouseDown={() => setPushing(true)}
@@ -97,56 +119,53 @@ export default function InterpreterPage() {
               onMouseLeave={() => setPushing(false)}
               onTouchStart={() => setPushing(true)}
               onTouchEnd={() => setPushing(false)}
-              className={cn(
-                "flex size-20 items-center justify-center rounded-full transition-all duration-200",
-                pushing
-                  ? "scale-105 bg-[var(--cc-pharmacy)] text-white shadow-[0_0_40px_rgba(59,130,246,0.4)]"
-                  : "bg-[var(--cc-elevated)] text-[var(--cc-text)] hover:bg-[var(--cc-surface)]"
-              )}
+              className="flex h-14 w-14 items-center justify-center rounded-full transition-all duration-150"
+              style={{
+                background: pushing ? "var(--lavender)" : "var(--surface-3)",
+                border: `1px solid ${pushing ? "var(--lavender)" : "var(--hairline-strong)"}`,
+                boxShadow: pushing ? "0 0 0 4px var(--lavender-muted)" : "none",
+                color: pushing ? "var(--inverse-ink)" : "var(--ink-subtle)",
+              }}
             >
-              <Mic className="size-7" />
+              <Mic className="size-5" />
             </button>
           </div>
-          <p className="mt-4 text-center text-xs text-[var(--cc-text-secondary)]">
+          <p className="mt-3 text-center text-[11px]" style={{ color: "var(--ink-tertiary)" }}>
             Hold to speak · Release to translate · Medical context preserved
           </p>
         </div>
 
+        {/* Dual pane */}
         <div className="grid lg:grid-cols-2">
           <section
-            className={cn(
-              "border-b p-6 lg:border-b-0 lg:border-r hairline transition-opacity duration-300",
-              mode === "provider" ? "opacity-40" : "opacity-100"
-            )}
+            className={cn("p-5 transition-opacity duration-200", mode === "provider" && "opacity-35")}
+            style={{ borderRight: "1px solid var(--hairline)" }}
           >
-            <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--cc-text-secondary)]">
-              <User className="size-3.5" />
-              Traveler · English
+            <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--ink-tertiary)" }}>
+              <User className="size-3.5" /> Traveler · English
             </p>
-            <p className="mt-4 text-sm leading-[1.7] whitespace-pre-line">
+            <p className="mt-3 text-[13px] leading-relaxed whitespace-pre-line" style={{ color: "var(--ink-subtle)" }}>
               {data.interpreterContextEnglish}
             </p>
           </section>
-          <section
-            className={cn(
-              "p-6 transition-opacity duration-300",
-              mode === "traveler" ? "opacity-40" : "opacity-100"
-            )}
-          >
-            <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--cc-pharmacy)]">
-              <Stethoscope className="size-3.5" />
-              Provider · {data.targetLanguage}
+          <section className={cn("p-5 transition-opacity duration-200", mode === "traveler" && "opacity-35")}>
+            <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ color: "var(--lavender-hover)" }}>
+              <Stethoscope className="size-3.5" /> Provider · {data.targetLanguage}
             </p>
-            <p className="mt-4 text-sm font-medium leading-[1.7] whitespace-pre-line">
+            <p className="mt-3 text-[13px] font-medium leading-relaxed whitespace-pre-line" style={{ color: "var(--ink)" }}>
               {data.interpreterContextTranslated}
             </p>
           </section>
         </div>
       </div>
 
-      <div className="cc-elevated flex items-center justify-between rounded-2xl px-5 py-3 text-xs text-[var(--cc-text-secondary)]">
-        <span>Live transcript · Context-aware · You approve before showing</span>
-        <span className="font-mono text-[var(--cc-pharmacy)]">{data.targetLanguage}</span>
+      {/* Footer status */}
+      <div
+        className="flex items-center justify-between rounded px-4 py-2.5 text-[11px] lifted-panel"
+        style={{ background: "var(--surface-1)" }}
+      >
+        <span style={{ color: "var(--ink-tertiary)" }}>Live transcript · Context-aware · You approve before showing</span>
+        <span className="font-mono" style={{ color: "var(--lavender-hover)" }}>{data.targetLanguage}</span>
       </div>
     </motion.div>
   );

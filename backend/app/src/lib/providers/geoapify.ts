@@ -1,13 +1,14 @@
-import { ProviderType } from '@prisma/client';
+// ProviderType is a plain string field in the Prisma schema (not an enum)
+export type ProviderType = 'PHARMACY' | 'CLINIC' | 'HOSPITAL';
 
 const GEOAPIFY_API_KEY = process.env.GEOAPIFY_API_KEY;
 if (!GEOAPIFY_API_KEY) {
-  throw new Error('GEOAPIFY_API_KEY is required to query provider locations.');
+  console.warn('GEOAPIFY_API_KEY is not set — provider lookups will fail at runtime.');
 }
 
 const CATEGORY_MAP: Record<ProviderType, string> = {
   PHARMACY: 'healthcare.pharmacy',
-  CLINIC: 'healthcare.clinic',
+  CLINIC:   'healthcare.clinic_or_praxis',
   HOSPITAL: 'healthcare.hospital'
 };
 
@@ -17,20 +18,31 @@ export async function findNearbyProviders(
   type: ProviderType,
   radiusMeters: number = 5000
 ) {
+  if (!GEOAPIFY_API_KEY) {
+    return [];
+  }
+
   const category = CATEGORY_MAP[type];
-  const url = `https://api.geoapify.com/v2/places?categories=${category}&filter=circle:${lng},${lat},${radiusMeters}&bias=proximity:${lng},${lat}&limit=5&apiKey=${GEOAPIFY_API_KEY}`;
+  const url =
+    `https://api.geoapify.com/v2/places` +
+    `?categories=${category}` +
+    `&filter=circle:${lng},${lat},${radiusMeters}` +
+    `&bias=proximity:${lng},${lat}` +
+    `&limit=5` +
+    `&apiKey=${GEOAPIFY_API_KEY}`;
+
   const res = await fetch(url);
   if (!res.ok) {
     throw new Error(`Geoapify request failed: ${res.status} ${res.statusText}`);
   }
 
   const data = await res.json();
-  return data.features.map((feature: any) => ({
-    name: feature.properties.name || 'Unnamed Provider',
-    address: feature.properties.formatted || '',
-    lat: feature.properties.lat,
-    lng: feature.properties.lon,
+  return (data.features ?? []).map((feature: any) => ({
+    name:       feature.properties.name || 'Unnamed Provider',
+    address:    feature.properties.formatted || '',
+    lat:        feature.properties.lat,
+    lng:        feature.properties.lon,
     externalId: feature.properties.place_id,
-    type
+    type,
   }));
 }

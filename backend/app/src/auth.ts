@@ -19,6 +19,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user.preferredLanguage) session.user.preferredLanguage = user.preferredLanguage;
       if (user.allergies) session.user.allergies = user.allergies;
       if (user.medications) session.user.medications = user.medications;
+      if (user.role) session.user.role = user.role;
+      if (user.onboardingComplete !== undefined) session.user.onboardingComplete = user.onboardingComplete;
       return session;
     },
   },

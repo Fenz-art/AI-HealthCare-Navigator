@@ -1,4 +1,4 @@
-import { CreateSessionInput } from '@/lib/session/schema';
+import { CreateSessionInput } from './schema.js';
 export declare function createTravelHealthSession(input: CreateSessionInput): Promise<{
     userId: string | null;
     location: string | null;
@@ -23,6 +23,13 @@ export declare function createTravelHealthSession(input: CreateSessionInput): Pr
     updatedAt: Date;
 }>;
 export declare function getTravelHealthSession(sessionId: string): Promise<{
+    symptoms: unknown[];
+    allergies: unknown[];
+    currentMeds: unknown[];
+    includedDocuments: unknown[];
+    medRecs: unknown[];
+    providerRecs: unknown[];
+    outcome: any;
     countryCode: string | null;
     targetLanguage: string;
     country: {
@@ -32,23 +39,16 @@ export declare function getTravelHealthSession(sessionId: string): Promise<{
     } | null;
     userId: string | null;
     location: string | null;
-    symptoms: string;
     duration: string | null;
-    allergies: string;
-    currentMeds: string;
     includedPassport: boolean;
-    includedDocuments: string | null;
     lat: number | null;
     lng: number | null;
     id: string;
     caseId: string;
     countryId: string | null;
     severity: string | null;
-    medRecs: string | null;
-    providerRecs: string | null;
     interpreterContext: string | null;
     interpreterContextTranslated: string | null;
-    outcome: string | null;
     createdAt: Date;
     updatedAt: Date;
 } | null>;

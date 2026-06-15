@@ -6,7 +6,7 @@ export function StoryUncertainty() {
   return (
     <StoryScene id="story-uncertainty">
       <div className="mx-auto max-w-3xl text-center">
-        <p className="text-sm font-medium text-[var(--compass-teal)]">
+        <p className="text-sm font-medium" style={{ color: "var(--lavender-hover)" }}>
           The moment
         </p>
         <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">

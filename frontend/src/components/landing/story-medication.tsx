@@ -40,7 +40,7 @@ export function StoryMedication() {
   return (
     <StoryScene id="story-medication">
       <div className="text-center">
-        <p className="text-sm font-medium text-[var(--compass-teal)]">
+        <p className="text-sm font-medium" style={{ color: "var(--lavender-hover)" }}>
           Local medication
         </p>
         <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
@@ -55,12 +55,17 @@ export function StoryMedication() {
         {MAPPINGS.map((item) => (
           <article
             key={item.from}
-            className="med-card surface-card flex flex-col items-center p-6 text-center"
+            className="med-card lifted-panel flex flex-col items-center rounded-md p-6 text-center"
+            style={{ background: "var(--surface-1)" }}
           >
-            <p className="text-lg font-semibold">{item.from}</p>
-            <p className="text-xs text-muted-foreground">{item.country}</p>
-            <ArrowRight className="my-3 size-4 text-[var(--compass-teal)]" />
-            <p className="text-sm font-medium text-[var(--compass-teal)]">
+            <p className="text-lg font-semibold" style={{ color: "var(--ink)" }}>
+              {item.from}
+            </p>
+            <p className="text-xs" style={{ color: "var(--ink-tertiary)" }}>
+              {item.country}
+            </p>
+            <ArrowRight className="my-3 size-4" style={{ color: "var(--lavender-hover)" }} />
+            <p className="text-sm font-medium" style={{ color: "var(--lavender-hover)" }}>
               {item.to}
             </p>
           </article>

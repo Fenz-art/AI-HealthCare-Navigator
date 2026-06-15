@@ -24,6 +24,7 @@ export default function SessionConsentPage() {
     async function loadData() {
       setLoading(true);
       setError(null);
+      
 
       try {
         const sessionData = await api.getSession(params.id);

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRef } from "react";
+import { useParams } from "next/navigation";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -21,6 +22,7 @@ const COUNTRIES = [
 
 export function StoryClosing() {
   const gridRef = useRef<HTMLDivElement>(null);
+  const { locale } = useParams() as { locale: string };
 
   useGSAP(
     () => {
@@ -45,7 +47,10 @@ export function StoryClosing() {
     <>
       <StoryScene id="story-coverage" className="bg-muted/30">
         <div className="text-center">
-          <p className="text-sm font-medium text-[var(--compass-teal)]">
+          <p
+            className="text-sm font-medium"
+            style={{ color: "var(--lavender-hover)" }}
+          >
             Global coverage
           </p>
           <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
@@ -57,9 +62,20 @@ export function StoryClosing() {
           className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
         >
           {COUNTRIES.map((item) => (
-            <div key={item.city} className="country-cell surface-card p-5">
-              <p className="font-semibold">{item.city}</p>
-              <p className="mt-1 text-sm text-muted-foreground">{item.label}</p>
+            <div
+              key={item.city}
+              className="country-cell rounded-md p-5 lifted-panel"
+              style={{ background: "var(--surface-1)" }}
+            >
+              <p className="font-semibold" style={{ color: "var(--ink)" }}>
+                {item.city}
+              </p>
+              <p
+                className="mt-1 text-sm"
+                style={{ color: "var(--ink-subtle)" }}
+              >
+                {item.label}
+              </p>
             </div>
           ))}
         </div>
@@ -75,8 +91,20 @@ export function StoryClosing() {
             uncertain.
           </p>
           <Link
-            href="/app/session/new"
-            className="pill-cta-primary mt-8 inline-flex"
+            href={`/${locale}/app/session/new`}
+            className="mt-8 inline-flex items-center gap-2 rounded-md px-6 py-3 text-sm font-medium transition-colors duration-150"
+            style={{
+              background: "var(--lavender)",
+              color: "var(--inverse-ink)",
+            }}
+            onMouseEnter={(e) =>
+              ((e.currentTarget as HTMLAnchorElement).style.background =
+                "var(--lavender-hover)")
+            }
+            onMouseLeave={(e) =>
+              ((e.currentTarget as HTMLAnchorElement).style.background =
+                "var(--lavender)")
+            }
           >
             Start session
             <ArrowRight className="ml-2 size-4" />

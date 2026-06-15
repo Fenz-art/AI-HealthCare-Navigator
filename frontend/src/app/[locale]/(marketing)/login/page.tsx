@@ -18,14 +18,14 @@ export default function LoginPage() {
 
   async function handleGoogleSignIn() {
     setLoading("google");
-    await signIn("google", { callbackUrl: `/${locale}/app` });
+    await signIn("google", { callbackUrl: `/${locale}/app/onboarding` });
   }
 
   async function handleDevSignIn() {
     setLoading("dev");
     await signIn("developer", {
       email: devEmail,
-      callbackUrl: `/${locale}/app`,
+      callbackUrl: `/${locale}/app/onboarding`,
     });
   }
 

@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#06070A",
+  themeColor: "#010102",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -33,8 +33,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${GeistMono.variable} h-full`}>
-      <body className="min-h-full bg-[var(--cc-bg)] text-[var(--cc-text)]">
+    <html lang="en" className={`${inter.variable} ${GeistMono.variable} h-full`} data-scroll-behavior="smooth">
+      <body className="min-h-full bg-[var(--canvas)] text-[var(--ink)]">
         <Providers>{children}</Providers>
       </body>
     </html>

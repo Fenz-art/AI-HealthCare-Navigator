@@ -36,3 +36,6 @@ export declare function recordOutcome(sessionId: string, data: OutcomeInput): Pr
     createdAt: Date;
     updatedAt: Date;
 }>;
+export declare function generateInsightsForJourney(journeyId: string): Promise<{
+    success: boolean;
+}>;

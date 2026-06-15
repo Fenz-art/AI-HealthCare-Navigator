@@ -17,12 +17,16 @@ export function DetectDemo() {
   const [lines, setLines] = useState<typeof SCAN_LOG>([]);
 
   useEffect(() => {
+    // Reset on each mount (handles React StrictMode double-invoke)
+    setLines([]);
     let i = 0;
     const id = setInterval(() => {
-      if (i < SCAN_LOG.length) {
-        setLines((prev) => [...prev, SCAN_LOG[i]]);
+      const entry = SCAN_LOG[i];
+      if (entry) {
+        setLines((prev) => [...prev, entry]);
         i++;
-      } else {
+      }
+      if (i >= SCAN_LOG.length) {
         clearInterval(id);
       }
     }, 700);
@@ -43,7 +47,7 @@ export function DetectDemo() {
       <div className="space-y-6">
         <div className="rounded-xl border bg-[var(--mk-elevated)] p-4 font-mono text-xs mk-hairline">
           <AnimatePresence>
-            {lines.map((line) => (
+            {lines.filter(Boolean).map((line) => (
               <motion.div
                 key={line.time + line.url}
                 initial={{ opacity: 0, x: -8 }}

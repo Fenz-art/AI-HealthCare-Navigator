@@ -24,14 +24,14 @@ export function Logo({
     >
       <span
         className={cn(
-          "flex size-8 items-center justify-center rounded-lg ring-1",
+          "flex size-8 items-center justify-center rounded-md ring-1",
           isMarketing
             ? "bg-[var(--mk-elevated)] ring-[var(--mk-border)]"
-            : "bg-[var(--cc-elevated)] ring-[var(--cc-border)]"
+            : "bg-[var(--surface-2)] ring-[var(--hairline)]"
         )}
       >
         <Compass
-          className={cn("size-4", isMarketing ? "text-[var(--mk-text)]" : "text-[var(--cc-text)]")}
+          className={cn("size-4", isMarketing ? "text-[var(--mk-text)]" : "text-[var(--lavender)]")}
           strokeWidth={2}
         />
       </span>

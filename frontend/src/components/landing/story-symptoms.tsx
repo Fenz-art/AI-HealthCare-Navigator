@@ -34,22 +34,33 @@ export function StorySymptoms() {
   return (
     <StoryScene id="story-symptoms" className="bg-muted/30">
       <div className="grid items-center gap-10 lg:grid-cols-2">
-        <div className="card-elevated aspect-[4/3] overflow-hidden rounded-3xl bg-[color-mix(in_srgb,var(--compass-ocean)_6%,white)] p-8">
+        {/* Demo card — NATURAL SPRINT surface ladder, no compass-ocean */}
+        <div
+          className="lifted-panel aspect-[4/3] overflow-hidden rounded-xl p-8"
+          style={{ background: "var(--surface-1)" }}
+        >
           <div className="flex h-full flex-col justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <p
+                className="text-[10px] font-semibold uppercase tracking-[0.14em]"
+                style={{ color: "var(--ink-tertiary)" }}
+              >
                 Step 1
               </p>
-              <p className="mt-2 text-2xl font-bold">Share how you feel</p>
+              <p className="mt-2 text-2xl font-bold" style={{ color: "var(--ink)" }}>
+                Share how you feel
+              </p>
             </div>
-            <div
-              ref={chipsRef}
-              className="flex flex-wrap gap-2"
-            >
+            <div ref={chipsRef} className="flex flex-wrap gap-2">
               {COMMON_SYMPTOMS.slice(0, 6).map((symptom) => (
                 <span
                   key={symptom}
-                  className="symptom-chip rounded-full bg-card px-4 py-2 text-sm font-medium shadow-sm"
+                  className="symptom-chip rounded px-3 py-1.5 text-sm font-medium"
+                  style={{
+                    background: "var(--surface-3)",
+                    border: "1px solid var(--hairline)",
+                    color: "var(--ink-muted)",
+                  }}
                 >
                   {symptom}
                 </span>
@@ -58,7 +69,7 @@ export function StorySymptoms() {
           </div>
         </div>
         <div>
-          <p className="text-sm font-medium text-[var(--compass-teal)]">
+          <p className="text-sm font-medium" style={{ color: "var(--lavender-hover)" }}>
             Onboarding, not a medical form
           </p>
           <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">

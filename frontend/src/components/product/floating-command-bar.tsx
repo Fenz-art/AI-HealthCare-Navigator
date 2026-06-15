@@ -67,26 +67,45 @@ export function FloatingCommandBar({ locale = "en" }: FloatingCommandBarProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -12, scale: 0.98 }}
             transition={{ duration: motionTokens.normal, ease: motionTokens.ease }}
-            className="cc-glow fixed left-1/2 top-[15%] z-50 w-full max-w-xl -translate-x-1/2 overflow-hidden rounded-2xl border hairline bg-[var(--cc-elevated)] shadow-2xl"
+            className="lifted-panel fixed left-1/2 top-[15%] z-50 w-full max-w-xl -translate-x-1/2 overflow-hidden rounded-xl"
+            style={{
+              background: "var(--surface-2)",
+              boxShadow: "0 32px 80px rgba(0,0,0,0.6)",
+            }}
           >
             <Command className="flex flex-col" loop>
-              <div className="flex items-center gap-3 border-b hairline px-4">
-                <Search className="size-4 shrink-0 text-[var(--cc-text-secondary)]" />
+              <div
+                className="flex items-center gap-3 px-4"
+                style={{ borderBottom: "1px solid var(--hairline)" }}
+              >
+                <Search className="size-4 shrink-0" style={{ color: "var(--ink-tertiary)" }} />
                 <Command.Input
                   placeholder="What do you need?"
-                  className="h-14 flex-1 bg-transparent text-sm outline-none placeholder:text-[var(--cc-text-secondary)]"
+                  className="h-14 flex-1 bg-transparent text-sm outline-none"
+                  style={{ color: "var(--ink)", caretColor: "var(--lavender)" }}
                 />
-                <kbd className="rounded border hairline px-1.5 py-0.5 font-mono text-[10px] text-[var(--cc-text-secondary)]">
+                <kbd
+                  className="rounded px-1.5 py-0.5 font-mono text-[10px]"
+                  style={{
+                    border: "1px solid var(--hairline)",
+                    background: "var(--surface-3)",
+                    color: "var(--ink-tertiary)",
+                  }}
+                >
                   esc
                 </kbd>
               </div>
               <Command.List className="max-h-72 overflow-y-auto p-2">
-                <Command.Empty className="px-3 py-8 text-center text-sm text-[var(--cc-text-secondary)]">
+                <Command.Empty
+                  className="px-3 py-8 text-center text-sm"
+                  style={{ color: "var(--ink-subtle)" }}
+                >
                   No results.
                 </Command.Empty>
                 <Command.Group
                   heading="Actions"
-                  className="[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-2 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-[var(--cc-text-secondary)]"
+                  className="[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-2 [&_[cmdk-group-heading]]:text-[10px] [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.14em]"
+                  style={{ ["--cmdk-group-heading-color" as string]: "var(--ink-tertiary)" }}
                 >
                   {ACTIONS.map((action) => {
                     const Icon = action.icon;
@@ -95,17 +114,26 @@ export function FloatingCommandBar({ locale = "en" }: FloatingCommandBarProps) {
                         key={action.label}
                         value={action.label}
                         onSelect={() => setOpen(false)}
-                        className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm outline-none transition-colors duration-150 aria-selected:bg-[var(--cc-surface)]"
+                        className="flex cursor-pointer items-center gap-3 rounded-md px-3 py-2.5 text-sm outline-none transition-colors duration-100 aria-selected:bg-[var(--surface-3)]"
                       >
                         <Link
                           href={`/${locale}${action.href}`}
                           className="flex w-full items-center gap-3"
                           onClick={() => setOpen(false)}
                         >
-                          <Icon className="size-4 text-[var(--cc-text-secondary)]" />
-                          <span className="flex-1">{action.label}</span>
+                          <Icon className="size-4" style={{ color: "var(--ink-subtle)" }} />
+                          <span className="flex-1" style={{ color: "var(--ink-muted)" }}>
+                            {action.label}
+                          </span>
                           {action.kbd ? (
-                            <kbd className="rounded border hairline px-1.5 py-0.5 font-mono text-[10px] text-[var(--cc-text-secondary)]">
+                            <kbd
+                              className="rounded px-1.5 py-0.5 font-mono text-[10px]"
+                              style={{
+                                border: "1px solid var(--hairline)",
+                                background: "var(--surface-3)",
+                                color: "var(--ink-tertiary)",
+                              }}
+                            >
                               {action.kbd}
                             </kbd>
                           ) : null}
@@ -115,8 +143,11 @@ export function FloatingCommandBar({ locale = "en" }: FloatingCommandBarProps) {
                   })}
                 </Command.Group>
               </Command.List>
-              <div className="border-t hairline px-4 py-2.5">
-                <p className="text-[10px] text-[var(--cc-text-secondary)]">
+              <div
+                className="px-4 py-2.5"
+                style={{ borderTop: "1px solid var(--hairline)" }}
+              >
+                <p className="text-[10px]" style={{ color: "var(--ink-tertiary)" }}>
                   CareCompass Agent · Navigation, not diagnosis
                 </p>
               </div>
@@ -128,7 +159,8 @@ export function FloatingCommandBar({ locale = "en" }: FloatingCommandBarProps) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-20 right-4 z-40 flex size-12 items-center justify-center rounded-full bg-[var(--cc-text)] text-[var(--cc-bg)] shadow-lg transition-all duration-200 hover:scale-105 hover:opacity-90 md:bottom-6"
+        className="fixed bottom-20 right-4 z-40 flex size-12 items-center justify-center rounded-full transition-all duration-200 hover:scale-105 hover:opacity-90 md:bottom-6"
+        style={{ background: "var(--lavender)", color: "var(--inverse-ink)" }}
         aria-label="Open command bar (Ctrl+K)"
       >
         <Sparkles className="size-5" />
